@@ -9,7 +9,7 @@ ansible_port: 22
 ansible_python_interpreter: /usr/bin/python3
 
 # ==================================================================
-# Step toggles
+# step toggles
 # ==================================================================
 deploy_firewall: true
 deploy_ssh: true
@@ -25,7 +25,7 @@ deploy_filebrowser: true
 ssh_allow_firewall: true
 
 # ==================================================================
-# Nginx
+# nginx
 # ==================================================================
 nginx_domain: "<DOMAIN>"
 nginx_install_avahi: false
@@ -36,7 +36,7 @@ nginx_filebrowser_proxy: true
 nginx_configure_firewall: true
 
 # ==================================================================
-# Grafana
+# grafana
 # ==================================================================
 grafana_user: "<GRAFANA_USER>"
 grafana_password: "<GRAFANA_PASSWORD>"
@@ -45,7 +45,7 @@ grafana_deploy_dir: /opt/grafana-stack
 grafana_wipe_existing: false
 
 # ==================================================================
-# Portainer
+# portainer
 # ==================================================================
 portainer_password: "<PORTAINER_PASSWORD>"
 portainer_domain: "<PORTAINER_DOMAIN>"
@@ -53,7 +53,7 @@ portainer_deploy_dir: /opt/portainer-stack
 portainer_wipe_existing: false
 
 # ==================================================================
-# Filebrowser
+# filebrowser
 # ==================================================================
 filebrowser_user: "<FILEBROWSER_USER>"
 filebrowser_password: "<FILEBROWSER_PASSWORD>"
