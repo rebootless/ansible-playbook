@@ -4,6 +4,7 @@
 # ==================================================================
 ansible_host: "<SERVER_IP_OR_HOSTNAME>"
 ansible_user: "<SSH_USER>"
+ansible_ssh_pass: "<SSH_USER_PASSWORD>"
 ansible_port: 22
 # ansible_ssh_private_key_file: "~/.ssh/id_rsa"
 ansible_python_interpreter: /usr/bin/python3
