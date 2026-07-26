@@ -44,15 +44,21 @@ Docker-based services bind to `127.0.0.1` only and are exposed through nginx rev
 ## Quick Start
 
 ```bash
-bash -c 'command -v git >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq git); command -v ansible >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq ansible); command -v nano >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq nano); command -v python3 >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq python3); git clone https://github.com/rebootless/ansible-playbooks.git && cd ansible-playbooks && ansible-galaxy collection install -r requirements.yml -f && nano group_vars/all/main.yml && echo -e "\n>>> Edit complete. Run the deploy with:\n\n  ansible-playbook deploy-server.yml\n\n(or with tags, e.g. --tags nginx,grafana)\n"'
+git clone https://github.com/rebootless/ansible-playbooks.git && cd ansible-playbooks && chmod +x quickstart.sh && ./quickstart.sh
 ```
 
-The one-liner:
-1. Checks for `git`, `ansible`, `nano`, `python3` and installs missing ones via `apt`
-2. Clones this repository
-3. Installs required Ansible collections
-4. Opens `group_vars/all/main.yml` in nano for you to fill in placeholders
-5. Prints the command to start the deployment
+The quickstart script:
+
+1. Installs `git`, `python3`, `pipx`, and `nano` if they are missing
+2. Reinstalls the latest Ansible via `pipx` (including all CLI tools)
+3. Installs the required Ansible collections
+4. Opens `group_vars/all/main.yml` in `nano` for configuration
+
+After editing the configuration, deploy the full stack:
+
+```bash
+ansible-playbook deploy-server.yml
+```
 
 ## Manual Setup
 
