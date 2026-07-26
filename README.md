@@ -41,7 +41,7 @@ Docker-based services bind to `127.0.0.1` only and are exposed through nginx rev
 - SSH access with sudo privileges
 - Internet access
 
-## Quick start
+## Quick Start
 
 ```bash
 bash -c 'command -v git >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq git); command -v ansible >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq ansible); command -v nano >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq nano); command -v python3 >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq python3); git clone https://github.com/rebootless/ansible-playbooks.git && cd ansible-playbooks && ansible-galaxy collection install -r requirements.yml -f && nano group_vars/all/main.yml && echo -e "\n>>> Edit complete. Run the deploy with:\n\n  ansible-playbook deploy-server.yml\n\n(or with tags, e.g. --tags nginx,grafana)\n"'
@@ -54,7 +54,7 @@ The one-liner:
 4. Opens `group_vars/all/main.yml` in nano for you to fill in placeholders
 5. Prints the command to start the deployment
 
-## Manual setup
+## Manual Setup
 
 ```bash
 git clone https://github.com/rebootless/ansible-playbooks.git
@@ -119,7 +119,7 @@ Connection details are taken from `group_vars/all/main.yml`.
 
 To manage multiple hosts, extend the inventory and move per-host variables to `host_vars/` or additional group_vars files.
 
-## ansible.cfg highlights
+## ansible.cfg Highlights
 
 - Inventory: `inventory/hosts.yml`
 - Roles path: `roles/`
@@ -127,7 +127,7 @@ To manage multiple hosts, extend the inventory and move per-host variables to `h
 - `host_key_checking = False` (convenient for first runs; consider enabling in production)
 - YAML stdout callback
 
-## Available roles
+## Available Roles
 
 ### firewalld
 Installs and starts firewalld, sets default zone to `public`.
@@ -167,7 +167,7 @@ Supports `filebrowser_wipe_existing`.
 Installs `docker.io` + `docker-compose` and starts the Docker service.  
 Used by nginx (when proxies are enabled) and by the three Docker-based roles.
 
-## Safety notes
+## Safety Notes
 
 - Secrets (`*_password`) are written to files with mode `0600` and use `no_log` where appropriate. Prefer Ansible Vault for production.
 - Docker services listen on localhost only; expose them exclusively through nginx (or another reverse proxy).
