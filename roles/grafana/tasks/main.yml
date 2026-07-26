@@ -1,0 +1,151 @@
+---
+- name: Check for an existing compose file
+  ansible.builtin.stat:
+    path: "{{ grafana_deploy_dir }}/compose.yaml"
+  register: grafana_existing_compose
+
+- name: Wipe existing Grafana stack and all data
+  when: grafana_wipe_existing | bool
+  block:
+    - name: Stop and remove existing stack
+      community.docker.docker_compose_v2:
+        project_src: "{{ grafana_deploy_dir }}"
+        state: absent
+        remove_volumes: true
+      when: grafana_existing_compose.stat.exists
+      failed_when: false
+
+    - name: Remove deploy directory
+      ansible.builtin.file:
+        path: "{{ grafana_deploy_dir }}"
+        state: absent
+
+- name: Create directory structure
+  ansible.builtin.file:
+    path: "{{ grafana_deploy_dir }}/{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - grafana/data
+    - grafana/provisioning/dashboards
+    - grafana/provisioning/datasources
+    - grafana/dashboards
+    - prometheus/data
+    - secrets
+
+- name: Set Grafana data directory ownership (grafana container UID 472)
+  ansible.builtin.file:
+    path: "{{ grafana_deploy_dir }}/grafana/data"
+    state: directory
+    owner: "472"
+    group: "472"
+    recurse: true
+    mode: "0755"
+
+- name: Set Prometheus data directory ownership (nobody UID 65534)
+  ansible.builtin.file:
+    path: "{{ grafana_deploy_dir }}/prometheus/data"
+    state: directory
+    owner: "65534"
+    group: "65534"
+    recurse: true
+    mode: "0777"
+
+- name: Write Grafana admin password secret
+  ansible.builtin.copy:
+    content: "{{ grafana_password }}"
+    dest: "{{ grafana_deploy_dir }}/secrets/grafana_admin_password.txt"
+    mode: "0600"
+  no_log: true
+
+- name: Determine Grafana root URL
+  ansible.builtin.set_fact:
+    grafana_root_url: "{{ ('https://' + grafana_domain + '/grafana/') if grafana_domain else 'http://localhost:3000/' }}"
+    grafana_serve_sub_path: "{{ 'true' if grafana_domain else 'false' }}"
+
+- name: Deploy prometheus.yml
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: "{{ grafana_deploy_dir }}/prometheus/prometheus.yml"
+    mode: "0644"
+  notify: restart grafana stack
+
+- name: Deploy Grafana datasource provisioning
+  ansible.builtin.template:
+    src: datasource.yml.j2
+    dest: "{{ grafana_deploy_dir }}/grafana/provisioning/datasources/prometheus.yml"
+    mode: "0644"
+  notify: restart grafana stack
+
+- name: Deploy Grafana dashboard provisioning
+  ansible.builtin.template:
+    src: dashboards.yml.j2
+    dest: "{{ grafana_deploy_dir }}/grafana/provisioning/dashboards/dashboards.yml"
+    mode: "0644"
+  notify: restart grafana stack
+
+- name: Deploy compose.yaml
+  ansible.builtin.template:
+    src: compose.yaml.j2
+    dest: "{{ grafana_deploy_dir }}/compose.yaml"
+    mode: "0644"
+  notify: restart grafana stack
+
+- name: Flush handlers so config changes are applied before we (re)start
+  ansible.builtin.meta: flush_handlers
+
+- name: Start Grafana stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ grafana_deploy_dir }}"
+    state: present
+    pull: always
+
+- name: Wait for Grafana health
+  ansible.builtin.uri:
+    url: "http://localhost:3000/api/health"
+    status_code: 200
+  register: grafana_health
+  until: grafana_health.json is defined and grafana_health.json.database is defined and grafana_health.json.database == "ok"
+  retries: 30
+  delay: 10
+  ignore_errors: true
+
+- name: Import Node Exporter Full dashboard (19937)
+  when: grafana_health is succeeded
+  block:
+    - name: Download dashboard JSON from grafana.com
+      ansible.builtin.uri:
+        url: "https://grafana.com/api/dashboards/19937/revisions/latest/download"
+        return_content: true
+      register: grafana_dashboard_json
+      failed_when: false
+
+    - name: Import dashboard into Grafana
+      ansible.builtin.uri:
+        url: "http://localhost:3000/api/dashboards/import"
+        method: POST
+        user: "{{ grafana_user }}"
+        password: "{{ grafana_password }}"
+        force_basic_auth: true
+        body_format: json
+        body:
+          dashboard: "{{ grafana_dashboard_json.json }}"
+          overwrite: true
+          inputs:
+            - name: DS_PROMETHEUS
+              type: datasource
+              pluginId: prometheus
+              value: Prometheus
+        status_code: 200
+      when: grafana_dashboard_json.status is defined and grafana_dashboard_json.status == 200
+      failed_when: false
+      no_log: true
+
+- name: Show summary
+  ansible.builtin.debug:
+    msg:
+      - "Deploy dir:  {{ grafana_deploy_dir }}"
+      - "Admin user:  {{ grafana_user }}"
+      - "Grafana:     http://localhost:3000"
+      - "Prometheus:  http://localhost:9090 (internal)"
+      - "Healthy:     {{ grafana_health is succeeded }}"

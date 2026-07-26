@@ -1,0 +1,6 @@
+---
+grafana_deploy_dir: /opt/grafana-stack
+grafana_user: admin
+grafana_password: admin
+grafana_domain: ""
+grafana_wipe_existing: false

@@ -1,0 +1,5 @@
+---
+galaxy_info:
+  description: Production nginx with optional PHP-FPM, avahi, and Grafana/Portainer/File Browser reverse proxies.
+  min_ansible_version: "2.15"
+dependencies: []

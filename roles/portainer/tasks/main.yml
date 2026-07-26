@@ -1,0 +1,71 @@
+---
+- name: Check for an existing compose file
+  ansible.builtin.stat:
+    path: "{{ portainer_deploy_dir }}/compose.yaml"
+  register: portainer_existing_compose
+
+- name: Wipe existing Portainer stack and all data
+  when: portainer_wipe_existing | bool
+  block:
+    - name: Stop and remove existing stack
+      community.docker.docker_compose_v2:
+        project_src: "{{ portainer_deploy_dir }}"
+        state: absent
+        remove_volumes: true
+      when: portainer_existing_compose.stat.exists
+      failed_when: false
+
+    - name: Remove deploy directory
+      ansible.builtin.file:
+        path: "{{ portainer_deploy_dir }}"
+        state: absent
+
+- name: Create directory structure
+  ansible.builtin.file:
+    path: "{{ portainer_deploy_dir }}/{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - data
+    - secrets
+
+- name: Write Portainer admin password secret
+  ansible.builtin.copy:
+    content: "{{ portainer_password }}"
+    dest: "{{ portainer_deploy_dir }}/secrets/portainer_admin_password.txt"
+    mode: "0600"
+  no_log: true
+
+- name: Deploy compose.yaml
+  ansible.builtin.template:
+    src: compose.yaml.j2
+    dest: "{{ portainer_deploy_dir }}/compose.yaml"
+    mode: "0644"
+  notify: restart portainer stack
+
+- name: Flush handlers so config changes are applied before we (re)start
+  ansible.builtin.meta: flush_handlers
+
+- name: Start Portainer stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ portainer_deploy_dir }}"
+    state: present
+    pull: always
+
+- name: Wait for Portainer health
+  ansible.builtin.uri:
+    url: "http://localhost:9000/api/status"
+    status_code: 200
+  register: portainer_health
+  until: portainer_health.json is defined and portainer_health.json.Version is defined
+  retries: 30
+  delay: 10
+  ignore_errors: true
+
+- name: Show summary
+  ansible.builtin.debug:
+    msg:
+      - "Deploy dir: {{ portainer_deploy_dir }}"
+      - "Admin user: admin"
+      - "Portainer:  http://localhost:9000"
+      - "Healthy:    {{ portainer_health is succeeded }}"

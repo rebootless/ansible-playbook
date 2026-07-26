@@ -1,0 +1,8 @@
+---
+filebrowser_deploy_dir: /opt/filebrowser-stack
+filebrowser_user: admin
+filebrowser_password: admin
+filebrowser_domain: ""
+filebrowser_wipe_existing: false
+filebrowser_uid: 1000
+filebrowser_gid: 1000

@@ -1,0 +1,6 @@
+---
+galaxy_info:
+  description: Portainer CE container management UI via Docker Compose.
+  min_ansible_version: "2.15"
+dependencies:
+  - role: docker

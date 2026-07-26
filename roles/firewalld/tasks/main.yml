@@ -1,0 +1,28 @@
+---
+- name: Install firewalld
+  ansible.builtin.apt:
+    name: firewalld
+    state: present
+    update_cache: true
+
+- name: Enable and start firewalld
+  ansible.builtin.systemd:
+    name: firewalld
+    enabled: true
+    state: started
+
+- name: Set default zone to public
+  ansible.builtin.command: firewall-cmd --set-default-zone=public
+  changed_when: false
+
+- name: List active services in public zone
+  ansible.builtin.command: firewall-cmd --zone=public --list-services
+  register: firewalld_services
+  changed_when: false
+
+- name: Show summary
+  ansible.builtin.debug:
+    msg:
+      - "Firewalld:        active"
+      - "Default zone:     public"
+      - "Allowed services: {{ firewalld_services.stdout }}"

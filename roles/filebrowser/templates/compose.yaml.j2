@@ -1,0 +1,20 @@
+services:
+  filebrowser:
+    image: filebrowser/filebrowser:latest
+    restart: unless-stopped
+    command:
+      - -d
+      - /database/filebrowser.db
+      - --baseurl
+      - /files
+    volumes:
+      - ./srv:/srv
+      - ./database:/database
+    ports:
+      - "127.0.0.1:8080:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s

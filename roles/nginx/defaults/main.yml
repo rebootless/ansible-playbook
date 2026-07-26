@@ -1,0 +1,12 @@
+---
+nginx_domain: example.com
+nginx_install_avahi: false
+nginx_install_php: false
+nginx_grafana_proxy: false
+nginx_portainer_proxy: false
+nginx_filebrowser_proxy: false
+nginx_configure_firewall: true
+
+nginx_grafana_upstream: "http://127.0.0.1:3000"
+nginx_portainer_upstream: "http://127.0.0.1:9000/"
+nginx_filebrowser_upstream: "http://127.0.0.1:8080/"
