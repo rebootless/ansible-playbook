@@ -1,0 +1,144 @@
+---
+- name: Install nginx
+  ansible.builtin.apt:
+    name:
+      - nginx
+      - ca-certificates
+    state: present
+    update_cache: true
+
+- name: Enable and start nginx
+  ansible.builtin.systemd:
+    name: nginx
+    enabled: true
+    state: started
+
+- name: Install avahi-daemon (mDNS / .local hostname)
+  ansible.builtin.apt:
+    name: avahi-daemon
+    state: present
+  when: nginx_install_avahi | bool
+
+- name: Enable avahi-daemon
+  ansible.builtin.systemd:
+    name: avahi-daemon
+    enabled: true
+    state: started
+  when: nginx_install_avahi | bool
+
+- name: Install PHP and PHP-FPM
+  ansible.builtin.apt:
+    name:
+      - php-cli
+      - php-fpm
+      - php-common
+      - php-mbstring
+      - php-xml
+      - php-curl
+    state: present
+  when: nginx_install_php | bool
+
+- name: Detect installed PHP version
+  ansible.builtin.command: php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;'
+  register: php_version_result
+  changed_when: false
+  when: nginx_install_php | bool
+
+- name: Set php_version fact
+  ansible.builtin.set_fact:
+    php_version: "{{ php_version_result.stdout }}"
+  when: nginx_install_php | bool
+
+# Docker is only required if we are wiring up a reverse proxy to a
+# Docker-based backend (Grafana / Portainer / File Browser).
+- name: Ensure Docker is installed for reverse-proxied backends
+  ansible.builtin.include_role:
+    name: docker
+  when: (nginx_grafana_proxy or nginx_portainer_proxy or nginx_filebrowser_proxy) | bool
+
+- name: Install firewalld
+  ansible.builtin.apt:
+    name: firewalld
+    state: present
+  when: nginx_configure_firewall | bool
+
+- name: Enable and start firewalld
+  ansible.builtin.systemd:
+    name: firewalld
+    enabled: true
+    state: started
+  when: nginx_configure_firewall | bool
+
+- name: Allow http/https/mdns through firewalld
+  ansible.posix.firewalld:
+    service: "{{ item }}"
+    zone: public
+    permanent: true
+    immediate: true
+    state: enabled
+  loop:
+    - http
+    - https
+    - mdns
+  when: nginx_configure_firewall | bool
+
+- name: Create web root
+  ansible.builtin.file:
+    path: "/var/www/{{ nginx_domain }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0755"
+
+# Ansible only rewrites the file when its content actually differs, and
+# keeps a timestamped .XXXX@ backup — this replaces the manual
+# "overwrite? y/N" + mv-to-.bak prompt from deploy-nginx.sh.
+- name: Deploy default index.html
+  ansible.builtin.template:
+    src: index.html.j2
+    dest: "/var/www/{{ nginx_domain }}/index.html"
+    owner: www-data
+    group: www-data
+    mode: "0644"
+    backup: true
+
+- name: Deploy nginx site config
+  ansible.builtin.template:
+    src: site.conf.j2
+    dest: "/etc/nginx/sites-available/{{ nginx_domain }}"
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify: reload nginx
+
+- name: Remove default nginx site
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+
+- name: Enable site
+  ansible.builtin.file:
+    src: "/etc/nginx/sites-available/{{ nginx_domain }}"
+    dest: "/etc/nginx/sites-enabled/{{ nginx_domain }}"
+    state: link
+  notify: reload nginx
+
+- name: Validate nginx configuration
+  ansible.builtin.command: nginx -t
+  changed_when: false
+
+- name: Flush handlers so nginx is reloaded before the summary
+  ansible.builtin.meta: flush_handlers
+
+- name: Show summary
+  ansible.builtin.debug:
+    msg:
+      - "Domain:             {{ nginx_domain }}"
+      - "Site root:          /var/www/{{ nginx_domain }}"
+      - "Config:             /etc/nginx/sites-available/{{ nginx_domain }}"
+      - "PHP-FPM:            {{ nginx_install_php }}{{ (' (' + php_version + ')') if (nginx_install_php | bool) else '' }}"
+      - "Grafana proxy:      {{ nginx_grafana_proxy }}"
+      - "Portainer proxy:    {{ nginx_portainer_proxy }}"
+      - "File Browser proxy: {{ nginx_filebrowser_proxy }}"
+      - "Firewall:           {{ 'firewalld (http, https, mdns)' if (nginx_configure_firewall | bool) else 'not configured' }}"

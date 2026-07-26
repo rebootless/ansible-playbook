@@ -1,0 +1,60 @@
+---
+- name: Install OpenSSH server
+  ansible.builtin.apt:
+    name: openssh-server
+    state: present
+    update_cache: true
+
+- name: Enable ssh service
+  ansible.builtin.systemd:
+    name: ssh
+    enabled: true
+
+- name: Check whether firewall-cmd is available
+  ansible.builtin.command: which firewall-cmd
+  register: firewalld_present
+  changed_when: false
+  failed_when: false
+
+- name: Check whether firewalld is active
+  ansible.builtin.command: systemctl is-active firewalld
+  register: firewalld_active
+  changed_when: false
+  failed_when: false
+  when: firewalld_present.rc == 0
+
+# Only touches firewalld if it is already installed and running — matches
+# the "only if firewalld is detected" behaviour of deploy-ssh.sh.
+- name: Allow SSH through firewalld
+  ansible.posix.firewalld:
+    service: ssh
+    zone: public
+    permanent: true
+    immediate: true
+    state: enabled
+  when:
+    - ssh_allow_firewall | bool
+    - firewalld_present.rc == 0
+    - firewalld_active.stdout is defined
+    - firewalld_active.stdout == "active"
+  register: ssh_firewall_result
+
+- name: Validate sshd configuration
+  ansible.builtin.command: sshd -t
+  changed_when: false
+
+- name: Restart ssh service
+  ansible.builtin.systemd:
+    name: ssh
+    state: restarted
+
+- name: Gather ssh service facts
+  ansible.builtin.service_facts:
+
+- name: Show summary
+  ansible.builtin.debug:
+    msg:
+      - "Service:  ssh"
+      - "Status:   {{ ansible_facts.services['ssh.service'].state | default('unknown') }}"
+      - "Startup:  {{ ansible_facts.services['ssh.service'].status | default('unknown') }}"
+      - "Firewall: {{ 'SSH allowed' if (ssh_firewall_result is defined and ssh_firewall_result is changed) else ('firewalld available' if firewalld_present.rc == 0 else 'firewalld not installed') }}"

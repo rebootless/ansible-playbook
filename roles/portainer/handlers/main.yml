@@ -1,0 +1,6 @@
+---
+- name: restart portainer stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ portainer_deploy_dir }}"
+    state: present
+    pull: always

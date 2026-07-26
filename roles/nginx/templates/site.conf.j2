@@ -1,0 +1,40 @@
+server {
+    listen 80;
+    server_name {{ nginx_domain }};
+    root /var/www/{{ nginx_domain }};
+
+    index index.php index.html;
+
+    server_tokens off;
+
+    access_log /var/log/nginx/{{ nginx_domain }}_access.log;
+    error_log  /var/log/nginx/{{ nginx_domain }}_error.log;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+{% if nginx_grafana_proxy %}
+{% include 'partials/grafana-proxy.conf.j2' %}
+{% endif %}
+{% if nginx_portainer_proxy %}
+{% include 'partials/portainer-proxy.conf.j2' %}
+{% endif %}
+{% if nginx_filebrowser_proxy %}
+{% include 'partials/filebrowser-proxy.conf.j2' %}
+{% endif %}
+{% if nginx_install_php %}
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/run/php/php{{ php_version }}-fpm.sock;
+        fastcgi_intercept_errors on;
+    }
+{% endif %}
+
+    location ~ /\. {
+        deny all;
+    }
+}

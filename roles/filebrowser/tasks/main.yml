@@ -1,0 +1,128 @@
+---
+- name: Check for an existing compose file
+  ansible.builtin.stat:
+    path: "{{ filebrowser_deploy_dir }}/compose.yaml"
+  register: filebrowser_existing_compose
+
+- name: Wipe existing File Browser stack and all data
+  when: filebrowser_wipe_existing | bool
+  block:
+    - name: Stop and remove existing stack
+      community.docker.docker_compose_v2:
+        project_src: "{{ filebrowser_deploy_dir }}"
+        state: absent
+        remove_volumes: true
+      when: filebrowser_existing_compose.stat.exists
+      failed_when: false
+
+    - name: Remove deploy directory
+      ansible.builtin.file:
+        path: "{{ filebrowser_deploy_dir }}"
+        state: absent
+
+- name: Create directory structure
+  ansible.builtin.file:
+    path: "{{ filebrowser_deploy_dir }}/{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - srv
+    - database
+    - secrets
+
+- name: Set ownership for srv and database (File Browser image UID/GID)
+  ansible.builtin.file:
+    path: "{{ filebrowser_deploy_dir }}/{{ item }}"
+    state: directory
+    owner: "{{ filebrowser_uid }}"
+    group: "{{ filebrowser_gid }}"
+    recurse: true
+  loop:
+    - srv
+    - database
+
+- name: Write File Browser admin password secret
+  ansible.builtin.copy:
+    content: "{{ filebrowser_password }}"
+    dest: "{{ filebrowser_deploy_dir }}/secrets/filebrowser_admin_password.txt"
+    mode: "0600"
+  no_log: true
+
+- name: Deploy compose.yaml
+  ansible.builtin.template:
+    src: compose.yaml.j2
+    dest: "{{ filebrowser_deploy_dir }}/compose.yaml"
+    mode: "0644"
+  notify: restart filebrowser stack
+
+# Bootstrap (config init + admin user) only runs once — if the database
+# already exists, existing credentials are retained, mirroring the bash
+# script's "existing database found — skipping admin bootstrap" behaviour.
+- name: Check for an existing database
+  ansible.builtin.stat:
+    path: "{{ filebrowser_deploy_dir }}/database/filebrowser.db"
+  register: filebrowser_existing_db
+
+- name: Pull File Browser image for bootstrap
+  community.docker.docker_image:
+    name: filebrowser/filebrowser:latest
+    source: pull
+  when: not filebrowser_existing_db.stat.exists
+
+- name: Initialize File Browser configuration
+  community.docker.docker_container:
+    name: filebrowser-config-init
+    image: filebrowser/filebrowser:latest
+    volumes:
+      - "{{ filebrowser_deploy_dir }}/database:/database"
+    command: >-
+      config init
+      -d /database/filebrowser.db
+      --address 0.0.0.0
+      --port 80
+      -r /srv
+    detach: false
+    cleanup: true
+  when: not filebrowser_existing_db.stat.exists
+
+- name: Create File Browser admin user
+  community.docker.docker_container:
+    name: filebrowser-user-init
+    image: filebrowser/filebrowser:latest
+    volumes:
+      - "{{ filebrowser_deploy_dir }}/database:/database"
+    command: >-
+      users add {{ filebrowser_user }} {{ filebrowser_password }}
+      --perm.admin
+      -d /database/filebrowser.db
+    detach: false
+    cleanup: true
+  when: not filebrowser_existing_db.stat.exists
+  no_log: true
+
+- name: Flush handlers so config changes are applied before we (re)start
+  ansible.builtin.meta: flush_handlers
+
+- name: Start File Browser stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ filebrowser_deploy_dir }}"
+    state: present
+    pull: always
+
+- name: Wait for File Browser health
+  ansible.builtin.uri:
+    url: "http://localhost:8080/health"
+    status_code: 200
+  register: filebrowser_health
+  until: filebrowser_health.status == 200
+  retries: 30
+  delay: 10
+  ignore_errors: true
+
+- name: Show summary
+  ansible.builtin.debug:
+    msg:
+      - "Deploy dir:   {{ filebrowser_deploy_dir }}"
+      - "Admin user:   {{ filebrowser_user }}"
+      - "File Browser: http://localhost:8080"
+      - "Healthy:      {{ filebrowser_health is succeeded }}"

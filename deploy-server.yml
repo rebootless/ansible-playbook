@@ -1,0 +1,91 @@
+---
+- name: Deploy server stack
+  hosts: all
+  become: true
+
+  pre_tasks:
+    - name: Assert ssh variables
+      ansible.builtin.assert:
+        that:
+          - ssh_allow_firewall is defined
+        fail_msg: "deploy_ssh is enabled but ssh_allow_firewall is not defined"
+      when: deploy_ssh | bool
+
+    - name: Assert nginx variables
+      ansible.builtin.assert:
+        that:
+          - nginx_domain is defined and nginx_domain | length > 0
+        fail_msg: "deploy_nginx is enabled but nginx_domain is not defined"
+      when: deploy_nginx | bool
+
+    - name: Assert grafana variables
+      ansible.builtin.assert:
+        that:
+          - grafana_user is defined
+          - grafana_password is defined
+          - grafana_domain is defined
+        fail_msg: "deploy_grafana is enabled but required grafana_* vars are missing"
+      when: deploy_grafana | bool
+
+    - name: Assert portainer variables
+      ansible.builtin.assert:
+        that:
+          - portainer_password is defined
+          - portainer_domain is defined
+        fail_msg: "deploy_portainer is enabled but required portainer_* vars are missing"
+      when: deploy_portainer | bool
+
+    - name: Assert filebrowser variables
+      ansible.builtin.assert:
+        that:
+          - filebrowser_user is defined
+          - filebrowser_password is defined
+          - filebrowser_domain is defined
+        fail_msg: "deploy_filebrowser is enabled but required filebrowser_* vars are missing"
+      when: deploy_filebrowser | bool
+
+    # Mirrors the "warn but don't fail" behaviour of deploy-server.sh when an
+    # nginx proxy is enabled for a backend that this run does not deploy.
+    - name: Warn about dangling nginx proxy toggles
+      ansible.builtin.debug:
+        msg: >-
+          Warning: nginx_{{ item }}_proxy is enabled but deploy_{{ item }}
+          is disabled — that proxy location will point to a service not
+          deployed by this run.
+      loop:
+        - grafana
+        - portainer
+        - filebrowser
+      when:
+        - deploy_nginx | bool
+        - lookup('vars', 'nginx_' + item + '_proxy') | bool
+        - not (lookup('vars', 'deploy_' + item) | bool)
+
+  roles:
+    - role: firewalld
+      when: deploy_firewall | bool
+      tags: [firewalld]
+
+    - role: ssh
+      when: deploy_ssh | bool
+      tags: [ssh]
+
+    - role: fail2ban
+      when: deploy_fail2ban | bool
+      tags: [fail2ban]
+
+    - role: nginx
+      when: deploy_nginx | bool
+      tags: [nginx]
+
+    - role: grafana
+      when: deploy_grafana | bool
+      tags: [grafana]
+
+    - role: portainer
+      when: deploy_portainer | bool
+      tags: [portainer]
+
+    - role: filebrowser
+      when: deploy_filebrowser | bool
+      tags: [filebrowser]

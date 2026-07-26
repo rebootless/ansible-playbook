@@ -1,0 +1,26 @@
+services:
+  portainer:
+    image: portainer/portainer-ce:latest
+    restart: unless-stopped
+    command:
+      # Loaded from a Docker secret; applied on first run only
+      - --admin-password-file=/run/secrets/portainer_admin_password
+    secrets:
+      - portainer_admin_password
+    volumes:
+      # Docker socket gives Portainer access to manage containers on this host
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data:/data
+    ports:
+      # Bind only to loopback — expose via the nginx role's reverse proxy
+      - "127.0.0.1:9000:9000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9000/api/status | grep -q '\"Version\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
+secrets:
+  portainer_admin_password:
+    file: ./secrets/portainer_admin_password.txt
