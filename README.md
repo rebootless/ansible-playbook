@@ -72,7 +72,9 @@ Required placeholders (replace all `<...>` values):
 
 ```yaml
 ansible_host: "<SERVER_IP_OR_HOSTNAME>"
-ansible_user: "<SSH_USER>"
+ansible_user: "<ANSIBLE_USER>"
+ansible_password: "<ANSIBLE_PASSWORD>"
+ansible_become_password: "<ANSIBLE_BECOME_PASSWORD>"
 
 nginx_domain: "<DOMAIN>"
 
