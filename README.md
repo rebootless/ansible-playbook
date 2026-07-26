@@ -106,12 +106,12 @@ Full stack:
 ansible-playbook deploy-server.yml
 ```
 
-Run selected components:
+Run selected components (for example):
 
 ```bash
-ansible-playbook deploy-server.yml --tags ssh,firewalld,docker,nginx,portainer
-ansible-playbook deploy-server.yml --tags ssh,firewalld,docker,nginx,filebrowser
-ansible-playbook deploy-server.yml --tags ssh,firewalld,docker,nginx,grafana
+ansible-playbook deploy-server.yml --tags ssh,firewalld,fail2ban,docker,nginx,portainer
+ansible-playbook deploy-server.yml --tags ssh,firewalld,fail2ban,docker,nginx,filebrowser
+ansible-playbook deploy-server.yml --tags ssh,firewalld,fail2ban,docker,nginx,grafana
 ```
 
 Dry-run / check mode:
