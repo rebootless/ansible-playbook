@@ -5,51 +5,58 @@ set -euo pipefail
 export PATH="$HOME/.local/bin:$PATH"
 export DEBIAN_FRONTEND=noninteractive
 
+echo ""
 echo "==> Preparing ansible-playbook"
 
 if ! dpkg -s git >/dev/null 2>&1; then
-    echo "[*] Installing git..."
+    echo ""
+    echo "[1/6] Installing git..."
     sudo apt-get update -qq
     sudo apt-get install -y -qq git
 fi
 
 if ! dpkg -s python3 >/dev/null 2>&1; then
-    echo "[*] Installing python3..."
+    echo ""
+    echo "[2/6] Installing python3..."
     sudo apt-get update -qq
     sudo apt-get install -y -qq python3
 fi
 
 if ! dpkg -s pipx >/dev/null 2>&1; then
-    echo "[*] Installing pipx..."
+    echo ""
+    echo "[3/6] Installing pipx..."
     sudo apt-get update -qq
     sudo apt-get install -y -qq pipx
 fi
 
 if ! dpkg -s nano >/dev/null 2>&1; then
-    echo "[*] Installing nano..."
+    echo ""
+    echo "[4/6] Installing nano..."
     sudo apt-get update -qq
     sudo apt-get install -y -qq nano
 fi
 
-echo "[*] Installing Ansible via pipx..."
+echo ""
+echo "[5/6] Installing Ansible via pipx..."
 
 if pipx list 2>/dev/null | grep -q "^package ansible "; then
-    echo "[i] Existing Ansible installation found, reinstalling..."
+    echo "Existing Ansible installation found, reinstalling..."
     pipx uninstall ansible
 fi
 
 pipx install --include-deps ansible
 
-echo "[*] Installing Ansible collections..."
+echo ""
+echo "[6/6] Installing Ansible collections..."
 
 ansible-galaxy collection install -r requirements.yml -f
 
-echo "[*] Opening configuration..."
+echo "Opening configuration..."
 
 nano group_vars/all/main.yml
 
 echo ""
-echo "[+] Done."
+echo "==> Done"
+
 echo ""
-echo "Run the deployment with:"
-echo "    ansible-playbook deploy-server.yml"
+echo "Run the deployment with: 'ansible-playbook deploy-server.yml'"
