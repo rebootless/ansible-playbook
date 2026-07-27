@@ -8,39 +8,47 @@ export DEBIAN_FRONTEND=noninteractive
 echo ""
 echo "==> Preparing ansible-playbook"
 
+echo ""
+echo "[1/6] Installing git..."
 if ! dpkg -s git >/dev/null 2>&1; then
-    echo ""
-    echo "[1/6] Installing git..."
     sudo apt-get update -qq
     sudo apt-get install -y -qq git
-fi
-
-if ! dpkg -s python3 >/dev/null 2>&1; then
-    echo ""
-    echo "[2/6] Installing python3..."
-    sudo apt-get update -qq
-    sudo apt-get install -y -qq python3
-fi
-
-if ! dpkg -s pipx >/dev/null 2>&1; then
-    echo ""
-    echo "[3/6] Installing pipx..."
-    sudo apt-get update -qq
-    sudo apt-get install -y -qq pipx
-fi
-
-if ! dpkg -s nano >/dev/null 2>&1; then
-    echo ""
-    echo "[4/6] Installing nano..."
-    sudo apt-get update -qq
-    sudo apt-get install -y -qq nano
+else 
+    echo "git already installed."
 fi
 
 echo ""
-echo "[5/6] Installing Ansible via pipx..."
+echo "[2/6] Installing python3..."
+if ! dpkg -s python3 >/dev/null 2>&1; then
+    sudo apt-get update -qq
+    sudo apt-get install -y -qq python3
+else
+    echo "python3 already installed."
+fi
+
+echo ""
+echo "[3/6] Installing pipx..."
+if ! dpkg -s pipx >/dev/null 2>&1; then
+    sudo apt-get update -qq
+    sudo apt-get install -y -qq pipx
+else 
+    echo "pipx already installed."
+fi
+
+echo ""
+echo "[4/6] Installing nano..."
+if ! dpkg -s nano >/dev/null 2>&1; then
+    sudo apt-get update -qq
+    sudo apt-get install -y -qq nano
+else
+    echo "nano already installed."
+fi
+
+echo ""
+echo "[5/6] Installing ansible via pipx..."
 
 if pipx list 2>/dev/null | grep -q "^package ansible "; then
-    echo "Existing Ansible installation found, reinstalling..."
+    echo "Existing ansible installation found, reinstalling..."
     pipx uninstall ansible
 fi
 
@@ -59,4 +67,5 @@ echo ""
 echo "==> Done"
 
 echo ""
-echo "Run the deployment with: 'ansible-playbook deploy-server.yml'"
+echo "Run the deployment with:"
+echo "  ansible-playbook deploy-server.yml"
