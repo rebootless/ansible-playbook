@@ -45,7 +45,7 @@ Docker-based services bind to `127.0.0.1` only and are exposed through nginx rev
 ## Quick Start
 
 ```bash
-git clone https://github.com/rebootless/ansible-playbook.git && cd ansible-playbooks && chmod +x quickstart.sh && ./quickstart.sh
+git clone https://github.com/rebootless/ansible-playbook.git && cd ansible-playbook && chmod +x quickstart.sh && ./quickstart.sh
 ```
 
 The quickstart script:
@@ -65,7 +65,7 @@ ansible-playbook deploy-server.yml
 
 ```bash
 git clone https://github.com/rebootless/ansible-playbook.git
-cd ansible-playbooks
+cd ansible-playbook
 ansible-galaxy collection install -r requirements.yml
 ```
 
