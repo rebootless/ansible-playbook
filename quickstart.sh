@@ -5,7 +5,7 @@ set -euo pipefail
 export PATH="$HOME/.local/bin:$PATH"
 export DEBIAN_FRONTEND=noninteractive
 
-echo "==> Preparing ansible-playbooks"
+echo "==> Preparing ansible-playbook"
 
 if ! dpkg -s git >/dev/null 2>&1; then
     echo "[*] Installing git..."
