@@ -4,6 +4,40 @@
   become: true
 
   pre_tasks:
+    - name: Assert firewall_backend is valid
+      ansible.builtin.assert:
+        that:
+          - firewall_backend is defined
+          - firewall_backend in ['firewalld', 'ufw']
+        fail_msg: "firewall_backend must be set to either 'firewalld' or 'ufw'"
+      when: deploy_firewall | bool
+
+    - name: Gather installed package facts (firewall detection)
+      ansible.builtin.package_facts:
+        manager: apt
+      when: deploy_firewall | bool
+
+    - name: Set the conflicting backend name for the error message
+      ansible.builtin.set_fact:
+        firewall_conflicting_backend: "{{ (firewall_backend == 'firewalld') | ternary('ufw', 'firewalld') }}"
+      when: deploy_firewall | bool
+
+    - name: Fail if a conflicting firewall backend is already present
+      ansible.builtin.fail:
+        msg: >-
+          firewall_backend is set to "{{ firewall_backend }}", but
+          "{{ firewall_conflicting_backend }}" is already installed on this
+          host. Installing and configuring both firewalls at once leads to
+          conflicting rules, so this run is stopping. Either set
+          firewall_backend to "{{ firewall_conflicting_backend }}" in
+          group_vars/all/main.yml to match what's already there, or
+          remove/purge "{{ firewall_conflicting_backend }}" from the host
+          before re-running with firewall_backend: {{ firewall_backend }}.
+      when:
+        - deploy_firewall | bool
+        - (firewall_backend == 'firewalld' and 'ufw' in ansible_facts.packages) or
+          (firewall_backend == 'ufw' and 'firewalld' in ansible_facts.packages)
+
     - name: Assert ssh variables
       ansible.builtin.assert:
         that:
@@ -63,8 +97,12 @@
 
   roles:
     - role: firewalld
-      when: deploy_firewall | bool
-      tags: [firewalld]
+      when: deploy_firewall | bool and firewall_backend == 'firewalld'
+      tags: [firewall, firewalld]
+
+    - role: ufw
+      when: deploy_firewall | bool and firewall_backend == 'ufw'
+      tags: [firewall, ufw]
 
     - role: ssh
       when: deploy_ssh | bool

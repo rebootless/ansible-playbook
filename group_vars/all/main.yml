@@ -27,6 +27,13 @@ deploy_filebrowser: true
 ssh_allow_firewall: true
 
 # ==================================================================
+# firewall
+# ==================================================================
+# Which backend to install/configure when deploy_firewall is true.
+# One of: firewalld, ufw
+firewall_backend: firewalld
+
+# ==================================================================
 # nginx
 # ==================================================================
 nginx_domain: "<DOMAIN>"
@@ -46,6 +53,15 @@ grafana_domain: "<GRAFANA_DOMAIN>"
 grafana_deploy_dir: /opt/grafana-stack
 grafana_wipe_existing: false
 
+# "latest" is convenient for a quick try, but it's not reproducible and can
+# silently pull in breaking changes on a redeploy — pin an explicit version
+# for production. Stable examples as of July 2026: grafana 13.1.1,
+# prometheus v3.13.1, node-exporter v1.12.1. Check the upstream release
+# pages for newer stable versions before deploying.
+grafana_image_version: "13.1.1"
+prometheus_image_version: "v3.13.1"
+node_exporter_image_version: "v1.12.1"
+
 # ==================================================================
 # portainer
 # ==================================================================
@@ -53,6 +69,12 @@ portainer_password: "<PORTAINER_PASSWORD>"
 portainer_domain: "<PORTAINER_DOMAIN>"
 portainer_deploy_dir: /opt/portainer-stack
 portainer_wipe_existing: false
+
+# "latest" is convenient for a quick try, but it's not reproducible and can
+# silently pull in breaking changes on a redeploy — pin an explicit version
+# for production. Stable example as of July 2026: 2.39.5 (LTS release).
+# Check https://github.com/portainer/portainer/releases for newer stable releases.
+portainer_image_version: "2.39.5"
 
 # ==================================================================
 # filebrowser
@@ -62,3 +84,9 @@ filebrowser_password: "<FILEBROWSER_PASSWORD>"
 filebrowser_domain: "<FILEBROWSER_DOMAIN>"
 filebrowser_deploy_dir: /opt/filebrowser-stack
 filebrowser_wipe_existing: false
+
+# "latest" is convenient for a quick try, but it's not reproducible and can
+# silently pull in breaking changes on a redeploy — pin an explicit version
+# for production. Stable example as of July 2026: v2.63.4.
+# Check https://github.com/filebrowser/filebrowser/releases for newer stable releases.
+filebrowser_image_version: "v2.63.4"

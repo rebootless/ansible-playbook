@@ -13,8 +13,8 @@ All components are optional and can be enabled or disabled via `deploy_*` variab
 
 | Component       | Description                                   |
 |-----------------|-----------------------------------------------|
-| **firewalld**   | Firewall with public zone                     |
-| **SSH**         | OpenSSH server + optional firewalld rule      |
+| **firewall**    | firewalld or ufw (pick one via `firewall_backend`) |
+| **SSH**         | OpenSSH server + optional firewall rule       |
 | **fail2ban**    | SSH jail protection                           |
 | **nginx**       | Reverse proxy (optional PHP, avahi, proxies)  |
 | **Grafana**     | Grafana + Prometheus + Node Exporter (Docker) |
@@ -34,6 +34,7 @@ Docker-based services bind to `127.0.0.1` only and are exposed through nginx rev
 - Collections:
   - `community.docker` ≥ 3.10
   - `ansible.posix` ≥ 1.5
+  - `community.general` ≥ 8.0
 
 ### Managed Node(s)
 
@@ -109,9 +110,9 @@ ansible-playbook deploy-server.yml
 Run selected components (for example):
 
 ```bash
-ansible-playbook deploy-server.yml --tags ssh,firewalld,fail2ban,docker,nginx,portainer
-ansible-playbook deploy-server.yml --tags ssh,firewalld,fail2ban,docker,nginx,filebrowser
-ansible-playbook deploy-server.yml --tags ssh,firewalld,fail2ban,docker,nginx,grafana
+ansible-playbook deploy-server.yml --tags ssh,firewall,fail2ban,docker,nginx,portainer
+ansible-playbook deploy-server.yml --tags ssh,firewall,fail2ban,docker,nginx,filebrowser
+ansible-playbook deploy-server.yml --tags ssh,firewall,fail2ban,docker,nginx,grafana
 ```
 
 Dry-run / check mode:
@@ -137,11 +138,23 @@ To manage multiple hosts, extend the inventory and move per-host variables to `h
 
 ## Available Roles
 
-### firewalld
-Installs and starts firewalld, sets default zone to `public`.
+### firewall (firewalld / ufw)
+Controlled by `firewall_backend` (`firewalld` or `ufw`, default `firewalld`) and `deploy_firewall`.
+`deploy-server.yml` runs whichever role matches `firewall_backend`.
+
+Before installing anything, `deploy-server.yml`'s pre_tasks check installed packages: if the
+*other* backend is already present on the host, the run fails with an explanation instead of
+installing a second, conflicting firewall. If the *selected* backend is already installed,
+installation is simply skipped (idempotent) and configuration proceeds.
+
+- **firewalld** — installs and starts firewalld, sets default zone to `public`.
+- **ufw** — installs ufw, sets default policy (deny incoming / allow outgoing), enables it.
 
 ### SSH
-Installs OpenSSH server, enables the service, optionally opens the SSH service in firewalld when it is already active.
+Installs OpenSSH server, enables the service. If `ssh_allow_firewall` is true, detects whichever
+firewall (firewalld and/or ufw) is already installed and active on the host and opens the SSH
+service/port on it — independent of `firewall_backend`, so it also works when `deploy_firewall`
+is disabled but a firewall already exists.
 
 ### fail2ban
 Installs fail2ban and deploys a minimal `jail.local` that protects SSH.
@@ -151,7 +164,9 @@ Installs fail2ban and deploys a minimal `jail.local` that protects SSH.
 - Optional avahi-daemon (`.local` hostname) and PHP-FPM
 - Creates site root and config under the configured domain
 - Optional reverse-proxy locations for Grafana / Portainer / Filebrowser
-- Optional firewalld rules for http / https / mdns
+- Optional firewall rules for http / https / mdns, on whichever of firewalld/ufw is
+  detected active on the host (same detection approach as the SSH role; nginx itself
+  never installs a firewall)
 - Pulls in the `docker` role when any proxy is enabled
 
 ### grafana
@@ -161,18 +176,29 @@ Docker Compose stack:
 - Node Exporter
 - Auto-imports the “Node Exporter Full” dashboard (ID 19937)
 - Supports `grafana_wipe_existing` to recreate from scratch
+- Image versions are pinned via `grafana_image_version`, `prometheus_image_version`,
+  and `node_exporter_image_version` (defaults are the latest stable releases as of
+  July 2026 — check upstream for newer ones before deploying; avoid `latest` in production)
 
 ### portainer
 Docker Compose Portainer CE with admin password from a secret file.  
-Supports `portainer_wipe_existing`.
+Supports `portainer_wipe_existing`.  
+Image version is pinned via `portainer_image_version` (default is the latest LTS release
+as of July 2026 — avoid `latest` in production).
 
 ### filebrowser
 Docker Compose File Browser.  
 Bootstraps the admin user only on first run (when the database does not yet exist).  
-Supports `filebrowser_wipe_existing`.
+Supports `filebrowser_wipe_existing`.  
+Image version is pinned via `filebrowser_image_version` (default is the latest stable
+release as of July 2026 — avoid `latest` in production).
 
 ### docker (shared role)
-Installs `docker.io` + `docker-compose` and starts the Docker service.  
+Installs Docker Engine (`docker-ce`, `docker-ce-cli`, `containerd.io`, `docker-buildx-plugin`,
+`docker-compose-plugin`) from Docker's official apt repository, as recommended by Docker's
+own install docs, rather than the distro-packaged `docker.io`/`docker-compose`. Works the same
+way on Debian and Ubuntu (repository URL is picked from `ansible_distribution`). Starts the
+Docker service.  
 Used by nginx (when proxies are enabled) and by the three Docker-based roles.
 
 ## Safety Notes

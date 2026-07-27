@@ -1,6 +1,6 @@
 services:
   portainer:
-    image: portainer/portainer-ce:latest
+    image: "portainer/portainer-ce:{{ portainer_image_version }}"
     restart: unless-stopped
     command:
       # Loaded from a Docker secret; applied on first run only

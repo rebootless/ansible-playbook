@@ -1,6 +1,6 @@
 services:
   grafana:
-    image: grafana/grafana:latest
+    image: "grafana/grafana:{{ grafana_image_version }}"
     restart: unless-stopped
     environment:
       GF_SECURITY_ADMIN_USER: "{{ grafana_user }}"
@@ -27,7 +27,7 @@ services:
       - monitoring
 
   prometheus:
-    image: prom/prometheus:latest
+    image: "prom/prometheus:{{ prometheus_image_version }}"
     restart: unless-stopped
     command:
       - --config.file=/etc/prometheus/prometheus.yml
@@ -46,7 +46,7 @@ services:
       - monitoring
 
   node-exporter:
-    image: prom/node-exporter:latest
+    image: "prom/node-exporter:{{ node_exporter_image_version }}"
     restart: unless-stopped
     pid: host
     volumes:

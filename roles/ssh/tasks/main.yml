@@ -37,7 +37,34 @@
     - firewalld_present.rc == 0
     - firewalld_active.stdout is defined
     - firewalld_active.stdout == "active"
-  register: ssh_firewall_result
+  register: ssh_firewalld_result
+
+- name: Check whether ufw is available
+  ansible.builtin.command: which ufw
+  register: ufw_present
+  changed_when: false
+  failed_when: false
+
+- name: Check whether ufw is active
+  ansible.builtin.command: ufw status
+  register: ufw_active
+  changed_when: false
+  failed_when: false
+  when: ufw_present.rc == 0
+
+# Same "only if already detected" behaviour as the firewalld block above,
+# just for the ufw backend.
+- name: Allow SSH through ufw
+  community.general.ufw:
+    rule: allow
+    name: OpenSSH
+    state: enabled
+  when:
+    - ssh_allow_firewall | bool
+    - ufw_present.rc == 0
+    - ufw_active.stdout is defined
+    - "'Status: active' in ufw_active.stdout"
+  register: ssh_ufw_result
 
 - name: Validate sshd configuration
   ansible.builtin.command: sshd -t
@@ -57,4 +84,9 @@
       - "Service:  ssh"
       - "Status:   {{ ansible_facts.services['ssh.service'].state | default('unknown') }}"
       - "Startup:  {{ ansible_facts.services['ssh.service'].status | default('unknown') }}"
-      - "Firewall: {{ 'SSH allowed' if (ssh_firewall_result is defined and ssh_firewall_result is changed) else ('firewalld available' if firewalld_present.rc == 0 else 'firewalld not installed') }}"
+      - >-
+        Firewall (firewalld): {{ 'SSH allowed' if (ssh_firewalld_result is defined and ssh_firewalld_result is changed)
+        else ('available, not touched' if firewalld_present.rc == 0 else 'not installed') }}
+      - >-
+        Firewall (ufw): {{ 'SSH allowed' if (ssh_ufw_result is defined and ssh_ufw_result is changed)
+        else ('available, not touched' if ufw_present.rc == 0 else 'not installed') }}

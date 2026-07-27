@@ -65,14 +65,14 @@
 
 - name: Pull File Browser image for bootstrap
   community.docker.docker_image:
-    name: filebrowser/filebrowser:latest
+    name: filebrowser/filebrowser:{{ filebrowser_image_version }}
     source: pull
   when: not filebrowser_existing_db.stat.exists
 
 - name: Initialize File Browser configuration
   community.docker.docker_container:
     name: filebrowser-config-init
-    image: filebrowser/filebrowser:latest
+    image: filebrowser/filebrowser:{{ filebrowser_image_version }}
     volumes:
       - "{{ filebrowser_deploy_dir }}/database:/database"
     command: >-
@@ -88,7 +88,7 @@
 - name: Create File Browser admin user
   community.docker.docker_container:
     name: filebrowser-user-init
-    image: filebrowser/filebrowser:latest
+    image: filebrowser/filebrowser:{{ filebrowser_image_version }}
     volumes:
       - "{{ filebrowser_deploy_dir }}/database:/database"
     command: >-

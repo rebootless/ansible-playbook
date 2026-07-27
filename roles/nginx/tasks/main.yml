@@ -56,18 +56,40 @@
     name: docker
   when: (nginx_grafana_proxy or nginx_portainer_proxy or nginx_filebrowser_proxy) | bool
 
-- name: Install firewalld
-  ansible.builtin.apt:
-    name: firewalld
-    state: present
+# nginx no longer installs a firewall itself — that's the job of the
+# firewalld/ufw role (deploy_firewall). Here we only detect whichever
+# backend is already present and active, and open our ports on it.
+- name: Check whether firewall-cmd is available
+  ansible.builtin.command: which firewall-cmd
+  register: nginx_firewalld_present
+  changed_when: false
+  failed_when: false
   when: nginx_configure_firewall | bool
 
-- name: Enable and start firewalld
-  ansible.builtin.systemd:
-    name: firewalld
-    enabled: true
-    state: started
+- name: Check whether firewalld is active
+  ansible.builtin.command: systemctl is-active firewalld
+  register: nginx_firewalld_active
+  changed_when: false
+  failed_when: false
+  when:
+    - nginx_configure_firewall | bool
+    - nginx_firewalld_present.rc == 0
+
+- name: Check whether ufw is available
+  ansible.builtin.command: which ufw
+  register: nginx_ufw_present
+  changed_when: false
+  failed_when: false
   when: nginx_configure_firewall | bool
+
+- name: Check whether ufw is active
+  ansible.builtin.command: ufw status
+  register: nginx_ufw_active
+  changed_when: false
+  failed_when: false
+  when:
+    - nginx_configure_firewall | bool
+    - nginx_ufw_present.rc == 0
 
 - name: Allow http/https/mdns through firewalld
   ansible.posix.firewalld:
@@ -80,7 +102,39 @@
     - http
     - https
     - mdns
-  when: nginx_configure_firewall | bool
+  when:
+    - nginx_configure_firewall | bool
+    - nginx_firewalld_present.rc == 0
+    - nginx_firewalld_active.stdout is defined
+    - nginx_firewalld_active.stdout == "active"
+  register: nginx_firewalld_result
+
+- name: Allow http/https through ufw
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+  loop:
+    - "80"
+    - "443"
+  when:
+    - nginx_configure_firewall | bool
+    - nginx_ufw_present.rc == 0
+    - nginx_ufw_active.stdout is defined
+    - "'Status: active' in nginx_ufw_active.stdout"
+  register: nginx_ufw_http_result
+
+- name: Allow mDNS through ufw
+  community.general.ufw:
+    rule: allow
+    port: "5353"
+    proto: udp
+  when:
+    - nginx_configure_firewall | bool
+    - nginx_ufw_present.rc == 0
+    - nginx_ufw_active.stdout is defined
+    - "'Status: active' in nginx_ufw_active.stdout"
+  register: nginx_ufw_mdns_result
 
 - name: Create web root
   ansible.builtin.file:
@@ -141,4 +195,9 @@
       - "Grafana proxy:      {{ nginx_grafana_proxy }}"
       - "Portainer proxy:    {{ nginx_portainer_proxy }}"
       - "File Browser proxy: {{ nginx_filebrowser_proxy }}"
-      - "Firewall:           {{ 'firewalld (http, https, mdns)' if (nginx_configure_firewall | bool) else 'not configured' }}"
+      - >-
+        Firewall (firewalld): {{ 'http, https, mdns allowed' if (nginx_firewalld_result is defined and nginx_firewalld_result is changed)
+        else ('available, not touched' if (nginx_configure_firewall | bool and nginx_firewalld_present.rc == 0) else 'not configured / not installed') }}
+      - >-
+        Firewall (ufw): {{ 'http, https, mdns allowed' if ((nginx_ufw_http_result is defined and nginx_ufw_http_result is changed) or (nginx_ufw_mdns_result is defined and nginx_ufw_mdns_result is changed))
+        else ('available, not touched' if (nginx_configure_firewall | bool and nginx_ufw_present.rc == 0) else 'not configured / not installed') }}

@@ -1,5 +1,5 @@
 ---
 galaxy_info:
-  description: Install and enable OpenSSH server, optionally allow it through firewalld.
+  description: Install and enable OpenSSH server, optionally allow it through firewalld or ufw (whichever is detected).
   min_ansible_version: "2.15"
 dependencies: []

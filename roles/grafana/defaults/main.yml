@@ -4,3 +4,12 @@ grafana_user: admin
 grafana_password: admin
 grafana_domain: ""
 grafana_wipe_existing: false
+
+# Image tags for the Grafana stack. "latest" is convenient for a quick try,
+# but it's not reproducible and can silently pull in breaking changes on a
+# redeploy — pin an explicit version for production.
+# Stable examples as of July 2026: grafana 13.1.1, prometheus v3.13.1,
+# node-exporter v1.12.1. Check for newer stable releases before deploying.
+grafana_image_version: "13.1.1"
+prometheus_image_version: "v3.13.1"
+node_exporter_image_version: "v1.12.1"

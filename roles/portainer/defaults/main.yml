@@ -3,3 +3,9 @@ portainer_deploy_dir: /opt/portainer-stack
 portainer_password: admin
 portainer_domain: ""
 portainer_wipe_existing: false
+
+# "latest" is convenient for a quick try, but it's not reproducible and can
+# silently pull in breaking changes on a redeploy — pin an explicit version
+# for production. Stable example as of July 2026: 2.39.5 (LTS release).
+# Check https://github.com/portainer/portainer/releases for newer stable releases.
+portainer_image_version: "2.39.5"
