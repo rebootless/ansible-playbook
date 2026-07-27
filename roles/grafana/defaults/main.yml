@@ -4,3 +4,7 @@ grafana_user: admin
 grafana_password: admin
 grafana_domain: ""
 grafana_wipe_existing: false
+
+grafana_image_version: "13.1.1"
+prometheus_image_version: "v3.13.1"
+node_exporter_image_version: "v1.12.1"

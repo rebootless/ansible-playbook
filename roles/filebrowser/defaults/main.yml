@@ -6,3 +6,5 @@ filebrowser_domain: ""
 filebrowser_wipe_existing: false
 filebrowser_uid: 1000
 filebrowser_gid: 1000
+
+filebrowser_image_version: "v2.63.4"

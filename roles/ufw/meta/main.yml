@@ -1,0 +1,5 @@
+---
+galaxy_info:
+  description: Install ufw, set default policies (deny incoming / allow outgoing) and enable it.
+  min_ansible_version: "2.15"
+dependencies: []

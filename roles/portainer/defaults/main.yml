@@ -3,3 +3,5 @@ portainer_deploy_dir: /opt/portainer-stack
 portainer_password: admin
 portainer_domain: ""
 portainer_wipe_existing: false
+
+portainer_image_version: "2.39.5"
