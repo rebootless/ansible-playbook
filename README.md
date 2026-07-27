@@ -1,6 +1,6 @@
-# ansible-playbooks
+# ansible-playbook
 
-> **A modular collection of Ansible playbooks for Debian- and Ubuntu-based systems.**
+> **A modular Ansible playbook for Debian- and Ubuntu-based systems.**
 > Hardened server deployment, Docker services, reverse proxy configuration,
 > monitoring stack, and infrastructure automation.
 
@@ -45,7 +45,7 @@ Docker-based services bind to `127.0.0.1` only and are exposed through nginx rev
 ## Quick Start
 
 ```bash
-git clone https://github.com/rebootless/ansible-playbooks.git && cd ansible-playbooks && chmod +x quickstart.sh && ./quickstart.sh
+git clone https://github.com/rebootless/ansible-playbook.git && cd ansible-playbooks && chmod +x quickstart.sh && ./quickstart.sh
 ```
 
 The quickstart script:
@@ -64,7 +64,7 @@ ansible-playbook deploy-server.yml
 ## Manual Setup
 
 ```bash
-git clone https://github.com/rebootless/ansible-playbooks.git
+git clone https://github.com/rebootless/ansible-playbook.git
 cd ansible-playbooks
 ansible-galaxy collection install -r requirements.yml
 ```
