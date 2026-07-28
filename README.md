@@ -1,8 +1,8 @@
 # Ansible-Playbook
 
-> **A modular Ansible playbook for Debian- and Ubuntu-based systems.**
-> Hardened server deployment, Docker services, reverse proxy configuration,
-> monitoring stack, and infrastructure automation.
+**A modular Ansible playbook for Debian- and Ubuntu-based systems.**
+Hardened server deployment, Docker services, reverse proxy configuration,
+monitoring stack, and infrastructure automation.
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Ansible](https://img.shields.io/badge/Ansible-2.15%2B-EE0000?logo=ansible&logoColor=white)](https://www.ansible.com/)
