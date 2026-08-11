@@ -25,6 +25,7 @@
     section: server
     option: host-name
     value: "{{ nginx_domain | regex_replace('\\.local$', '') }}"
+    no_extra_spaces: true
     owner: root
     group: root
     mode: "0644"
