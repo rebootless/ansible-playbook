@@ -5,6 +5,13 @@ services:
     command:
       - -d
       - /database/filebrowser.db
+      # File Browser has no way to detect that nginx is reverse-proxying it
+      # under /files/ (roles/nginx/templates/partials/filebrowser-proxy.conf.j2).
+      # Without --baseurl, File Browser generates all its internal links/API
+      # calls as if it owns the site root, so behind a /files/ prefix the UI
+      # loads a blank page and spins forever. --baseurl tells it "you are
+      # actually mounted at /files/", so it must match the nginx location
+      # exactly (including no trailing slash here).
       - --baseurl
       - /files
     volumes:
