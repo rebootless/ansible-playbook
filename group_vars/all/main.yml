@@ -1,9 +1,15 @@
 ---
 ansible_host: "<SERVER_IP_OR_HOSTNAME>"
+
 ansible_user: "<ANSIBLE_USER>"
+
 ansible_password: "<ANSIBLE_PASSWORD>"
+
 ansible_become_password: "<ANSIBLE_BECOME_PASSWORD>"
+
 ansible_port: 22
+
+
 ansible_python_interpreter: /usr/bin/python3
 
 deploy_firewall: true
@@ -19,17 +25,25 @@ ssh_allow_firewall: true
 firewall_backend: firewalld
 
 nginx_domain: "<DOMAIN>"
+
 nginx_install_avahi: false
+
 nginx_install_php: false
+
 nginx_grafana_proxy: true
 nginx_portainer_proxy: true
 nginx_filebrowser_proxy: true
+
 nginx_configure_firewall: true
 
 grafana_user: "<GRAFANA_USER>"
+
 grafana_password: "<GRAFANA_PASSWORD>"
+
 grafana_domain: "<GRAFANA_DOMAIN>"
+
 grafana_deploy_dir: /opt/grafana-stack
+
 grafana_wipe_existing: false
 
 grafana_image_version: "13.1.1"
@@ -37,16 +51,23 @@ prometheus_image_version: "v3.13.1"
 node_exporter_image_version: "v1.12.1"
 
 portainer_password: "<PORTAINER_PASSWORD>"
+
 portainer_domain: "<PORTAINER_DOMAIN>"
+
 portainer_deploy_dir: /opt/portainer-stack
+
 portainer_wipe_existing: false
 
 portainer_image_version: "2.39.5"
 
 filebrowser_user: "<FILEBROWSER_USER>"
+
 filebrowser_password: "<FILEBROWSER_PASSWORD>"
+
 filebrowser_domain: "<FILEBROWSER_DOMAIN>"
+
 filebrowser_deploy_dir: /opt/filebrowser-stack
+
 filebrowser_wipe_existing: false
 
 filebrowser_image_version: "v2.63.4"
