@@ -52,6 +52,23 @@
         fail_msg: "deploy_nginx is enabled but nginx_domain is not defined"
       when: deploy_nginx | bool
 
+    # mDNS names are only ever resolvable as "<name>.local" — if
+    # nginx_install_avahi is on but nginx_domain doesn't end in .local,
+    # avahi will happily start and publish something, but nginx_domain
+    # itself will never resolve via mDNS and the mismatch is easy to miss.
+    - name: Assert nginx_domain is a .local name when avahi is enabled
+      ansible.builtin.assert:
+        that:
+          - nginx_domain is regex('\\.local$')
+        fail_msg: >-
+          nginx_install_avahi is true but nginx_domain
+          ("{{ nginx_domain }}") does not end in ".local" — mDNS can only
+          resolve ".local" names, so set nginx_domain to something like
+          "filesrv.local" or turn nginx_install_avahi off.
+      when:
+        - deploy_nginx | bool
+        - nginx_install_avahi | bool
+
     - name: Assert grafana variables
       ansible.builtin.assert:
         that:

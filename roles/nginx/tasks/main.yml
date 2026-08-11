@@ -19,6 +19,27 @@
     state: present
   when: nginx_install_avahi | bool
 
+# By default avahi-daemon advertises the machine's *system* hostname
+# (hostnamectl) as "<system-hostname>.local" — it has no idea nginx_domain
+# even exists. So if nginx_domain is e.g. "filesrv.local" but the server's
+# actual hostname is "debian" or "deb-server", avahi keeps publishing
+# "debian.local"/"deb-server.local" and "filesrv.local" never resolves on
+# the LAN, even though avahi-daemon is installed and running.
+# Setting host-name= under [server] in avahi-daemon.conf overrides that,
+# independent of the real system hostname.
+- name: Set avahi-daemon host-name to match nginx_domain
+  community.general.ini_file:
+    path: /etc/avahi/avahi-daemon.conf
+    section: server
+    option: host-name
+    value: "{{ nginx_domain | regex_replace('\\.local$', '') }}"
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  when: nginx_install_avahi | bool
+  notify: restart avahi-daemon
+
 - name: Enable avahi-daemon
   ansible.builtin.systemd:
     name: avahi-daemon
