@@ -19,6 +19,19 @@
     state: present
   when: nginx_install_avahi | bool
 
+- name: Set avahi-daemon host-name to match nginx_domain
+  community.general.ini_file:
+    path: /etc/avahi/avahi-daemon.conf
+    section: server
+    option: host-name
+    value: "{{ nginx_domain | regex_replace('\\.local$', '') }}"
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  when: nginx_install_avahi | bool
+  notify: restart avahi-daemon
+
 - name: Enable avahi-daemon
   ansible.builtin.systemd:
     name: avahi-daemon
