@@ -35,6 +35,22 @@
   when: nginx_install_avahi | bool
   notify: restart avahi-daemon
 
+- name: Restrict avahi-daemon to the real LAN interface
+  community.general.ini_file:
+    path: /etc/avahi/avahi-daemon.conf
+    section: server
+    option: allow-interfaces
+    value: "{{ ansible_default_ipv4.interface }}"
+    no_extra_spaces: true
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  when:
+    - nginx_install_avahi | bool
+    - ansible_default_ipv4.interface is defined
+  notify: restart avahi-daemon
+
 - name: Enable avahi-daemon
   ansible.builtin.systemd:
     name: avahi-daemon
