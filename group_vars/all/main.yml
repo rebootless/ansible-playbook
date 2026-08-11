@@ -70,4 +70,4 @@ filebrowser_deploy_dir: /opt/filebrowser-stack
 
 filebrowser_wipe_existing: false
 
-filebrowser_image_version: "v2.63.4"
+filebrowser_image_version: "v2.63.22"
