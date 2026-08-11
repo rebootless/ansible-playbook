@@ -2,17 +2,46 @@
 # ==================================================================
 # SSH connection
 # ==================================================================
+# IPv4 address or resolvable hostname/FQDN of the target server.
+# example: "203.0.113.10" or "deb-server.example.com"
 ansible_host: "<SERVER_IP_OR_HOSTNAME>"
+
+# Linux login used by Ansible to connect over SSH. Must already exist on
+# the target host and (if ansible_become_password is set) be allowed to sudo.
+# example: "deploy"
 ansible_user: "<ANSIBLE_USER>"
+
+# SSH login password for ansible_user. Only needed if you connect with a
+# password instead of a key (see ansible_ssh_private_key_file below).
+# No format/length constraint enforced by Ansible itself — use whatever the
+# server account requires. Leave the placeholder if you're using key auth,
+# it will simply be unused.
+# example: "correct-horse-battery-staple"
 ansible_password: "<ANSIBLE_PASSWORD>"
+
+# sudo/become password for ansible_user on the target host. Same value as
+# ansible_password if the account uses the same password for login and sudo.
+# example: "correct-horse-battery-staple"
 ansible_become_password: "<ANSIBLE_BECOME_PASSWORD>"
+
+# TCP port the target's sshd listens on. Integer, 1-65535.
+# example: 22
 ansible_port: 22
+
+# Uncomment and set a path instead of ansible_password to use key-based auth.
+# example: "~/.ssh/id_rsa"
 # ansible_ssh_private_key_file: "~/.ssh/id_rsa"
+
+# Path to the Python 3 interpreter on the target host. Leave as-is for
+# Debian/Ubuntu; only change if python3 lives somewhere non-standard.
+# example: /usr/bin/python3
 ansible_python_interpreter: /usr/bin/python3
 
 # ==================================================================
 # step toggles
 # ==================================================================
+# Each deploy_* flag is a boolean: true or false (unquoted). Setting one to
+# false skips that role entirely.
 deploy_firewall: true
 deploy_ssh: true
 deploy_fail2ban: true
@@ -24,33 +53,78 @@ deploy_filebrowser: true
 # ==================================================================
 # SSH
 # ==================================================================
+# Boolean: true/false. Whether the ssh role opens the configured SSH port
+# on the active firewall backend.
 ssh_allow_firewall: true
 
 # ==================================================================
 # firewall
 # ==================================================================
 # Which backend to install/configure when deploy_firewall is true.
-# One of: firewalld, ufw
+# String, must be exactly one of: firewalld, ufw
+# example: firewalld
 firewall_backend: firewalld
 
 # ==================================================================
 # nginx
 # ==================================================================
+# Hostname used for nginx's server_name, the site root path, and access/
+# error log filenames. Any valid DNS label works, including a ".local"
+# name if you're relying on mDNS (see nginx_install_avahi below).
+# example: "deb-server.example.com" or "deb-server.local"
 nginx_domain: "<DOMAIN>"
+
+# Boolean: true/false. Installs and enables avahi-daemon, which is what
+# actually provides mDNS (the ".local" hostname resolution used on a LAN)
+# — this is NOT Apache; avahi-daemon is a small standalone service, no web
+# server involved. Turn this on only if nginx_domain ends in ".local" and
+# you want other devices on the same local network to resolve that name
+# without a real DNS entry.
 nginx_install_avahi: false
+
+# Boolean: true/false. Installs PHP-FPM and wires up the nginx PHP location.
 nginx_install_php: false
+
+# Boolean: true/false. Adds an nginx reverse-proxy location for the
+# corresponding service. Only meaningful if that service's deploy_* is
+# also true — see the "dangling proxy toggle" warning in deploy-server.yml.
 nginx_grafana_proxy: true
 nginx_portainer_proxy: true
 nginx_filebrowser_proxy: true
+
+# Boolean: true/false. Opens http/https/mdns on the active firewall backend.
 nginx_configure_firewall: true
 
 # ==================================================================
 # grafana
 # ==================================================================
+# Grafana admin login username. Free-form string, no length minimum
+# enforced by Grafana.
+# example: "admin"
 grafana_user: "<GRAFANA_USER>"
+
+# Grafana admin password. Grafana's built-in policy only requires a
+# non-empty password of at least 4 characters, but that's far too weak in
+# practice — use at least 12 characters with a mix of letters/numbers.
+# example: "Gr4fana-Str0ng-Pass!"
 grafana_password: "<GRAFANA_PASSWORD>"
+
+# Optional public hostname for Grafana. Leave empty ("") to serve on
+# http://localhost:3000/ only. If set, Grafana is told to serve under a
+# "/grafana/" sub-path (GF_SERVER_ROOT_URL + GF_SERVER_SERVE_FROM_SUB_PATH)
+# so it works correctly behind the nginx /grafana/ reverse-proxy location
+# — the same "app doesn't know its own URL prefix" problem described for
+# File Browser below, already handled here.
+# example: "grafana.example.com" or "" to disable
 grafana_domain: "<GRAFANA_DOMAIN>"
+
+# Absolute path on the target host where the Grafana/Prometheus/Node
+# Exporter compose stack and its data live.
+# example: /opt/grafana-stack
 grafana_deploy_dir: /opt/grafana-stack
+
+# Boolean: true/false. DESTRUCTIVE if true — wipes the existing stack and
+# all its data (dashboards, Prometheus TSDB) before redeploying.
 grafana_wipe_existing: false
 
 # "latest" is convenient for a quick try, but it's not reproducible and can
@@ -58,6 +132,8 @@ grafana_wipe_existing: false
 # for production. Stable examples as of July 2026: grafana 13.1.1,
 # prometheus v3.13.1, node-exporter v1.12.1. Check the upstream release
 # pages for newer stable versions before deploying.
+# example format: Grafana "13.1.1" (no "v" prefix), Prometheus/Node
+# Exporter "v3.13.1" (with "v" prefix) — match each project's own tag style.
 grafana_image_version: "13.1.1"
 prometheus_image_version: "v3.13.1"
 node_exporter_image_version: "v1.12.1"
@@ -65,28 +141,75 @@ node_exporter_image_version: "v1.12.1"
 # ==================================================================
 # portainer
 # ==================================================================
+# Portainer admin password. Note: unlike Grafana/File Browser, Portainer
+# does NOT let you choose the admin username — the built-in account is
+# always named "admin" (there's no portainer_user variable, by design of
+# Portainer itself, not this playbook).
+# Portainer enforces a minimum password length of 12 characters by
+# default and will refuse to bootstrap with anything shorter.
+# example: "Port4iner-Str0ng-Pass!" (12+ characters)
 portainer_password: "<PORTAINER_PASSWORD>"
+
+# Optional public hostname for Portainer, used only for documentation/
+# reference by this playbook (Portainer itself doesn't need to know it —
+# it's proxied as-is at /portainer/ with no sub-path configuration
+# required). Leave empty ("") if you don't expose it via nginx.
+# example: "portainer.example.com" or ""
 portainer_domain: "<PORTAINER_DOMAIN>"
+
+# Absolute path on the target host where the Portainer compose stack and
+# its data live.
+# example: /opt/portainer-stack
 portainer_deploy_dir: /opt/portainer-stack
+
+# Boolean: true/false. DESTRUCTIVE if true — wipes the existing stack and
+# all its data (managed environments, settings) before redeploying.
 portainer_wipe_existing: false
 
 # "latest" is convenient for a quick try, but it's not reproducible and can
 # silently pull in breaking changes on a redeploy — pin an explicit version
 # for production. Stable example as of July 2026: 2.39.5 (LTS release).
 # Check https://github.com/portainer/portainer/releases for newer stable releases.
+# example: "2.39.5"
 portainer_image_version: "2.39.5"
 
 # ==================================================================
 # filebrowser
 # ==================================================================
+# File Browser admin login username.
+# let you choose the username — it's passed straight to `filebrowser
+# users add <username> <password> --perm.admin`, so any value works.
+# example: "admin"
 filebrowser_user: "<FILEBROWSER_USER>"
+
+# File Browser admin password. Since v2.34.1, File Browser enforces a
+# minimum password length of 12 characters by default (security fix
+# GHSA-cm2r-rg7r-p7gg) — anything shorter is rejected when the admin user
+# is created.
+# example: "F1leBrowser-Str0ng-Pass!" (12+ characters)
 filebrowser_password: "<FILEBROWSER_PASSWORD>"
+
+# Optional public hostname for File Browser, used only for documentation/
+# reference by this playbook. The reverse-proxy path prefix File Browser
+# is actually served under is /files/, set via --baseurl in
+# roles/filebrowser/templates/compose.yaml.j2 — see the comment there for
+# why that flag has to match the nginx location exactly (this is the
+# "endless loading screen behind a sub-path reverse proxy" issue).
+# example: "files.example.com" or ""
 filebrowser_domain: "<FILEBROWSER_DOMAIN>"
+
+# Absolute path on the target host where the File Browser compose stack
+# and its data (srv/, database/) live.
+# example: /opt/filebrowser-stack
 filebrowser_deploy_dir: /opt/filebrowser-stack
+
+# Boolean: true/false. DESTRUCTIVE if true — wipes the existing stack and
+# all its data (uploaded files, user database) before redeploying.
 filebrowser_wipe_existing: false
 
 # "latest" is convenient for a quick try, but it's not reproducible and can
 # silently pull in breaking changes on a redeploy — pin an explicit version
 # for production. Stable example as of July 2026: v2.63.4.
 # Check https://github.com/filebrowser/filebrowser/releases for newer stable releases.
+# example: "v2.63.4"
 filebrowser_image_version: "v2.63.4"
