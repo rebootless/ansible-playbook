@@ -15,7 +15,12 @@
 
 - name: Install avahi-daemon (mDNS / .local hostname)
   ansible.builtin.apt:
-    name: avahi-daemon
+    name:
+      - avahi-daemon
+      # avahi-utils provides avahi-resolve / avahi-browse, useful for
+      # verifying mDNS resolution directly on the server without needing
+      # a second device on the LAN.
+      - avahi-utils
     state: present
   when: nginx_install_avahi | bool
 
