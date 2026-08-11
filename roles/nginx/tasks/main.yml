@@ -27,12 +27,18 @@
 # the LAN, even though avahi-daemon is installed and running.
 # Setting host-name= under [server] in avahi-daemon.conf overrides that,
 # independent of the real system hostname.
+# no_extra_spaces is required here: avahi's own config parser does NOT
+# trim whitespace around the key name, so ini_file's default "key = value"
+# formatting produces a literal key of "host-name " (trailing space), which
+# avahi rejects outright with "Invalid configuration key" and refuses to
+# start. "key=value" with no spaces is the only form it accepts.
 - name: Set avahi-daemon host-name to match nginx_domain
   community.general.ini_file:
     path: /etc/avahi/avahi-daemon.conf
     section: server
     option: host-name
     value: "{{ nginx_domain | regex_replace('\\.local$', '') }}"
+    no_extra_spaces: true
     owner: root
     group: root
     mode: "0644"
