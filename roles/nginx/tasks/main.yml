@@ -51,6 +51,32 @@
   when: nginx_install_avahi | bool
   notify: restart avahi-daemon
 
+# Without this, avahi joins the mDNS multicast group on *every* interface it
+# sees — including docker0 and every per-stack docker-compose bridge
+# (br-xxxxxxxx) and veth pair, since this host also runs Docker for
+# Grafana/Portainer/File Browser. It then happily publishes address records
+# for nginx_domain on those interfaces too, so a client resolving
+# "filesrv.local" can get back an unreachable 172.x.x.x Docker bridge
+# address instead of the real LAN address — resolution "works" (avahi
+# answers) but the address handed back is wrong depending on which record
+# wins. Restricting to the interface ansible actually uses to reach the
+# network keeps avahi from ever answering with a Docker-internal address.
+- name: Restrict avahi-daemon to the real LAN interface
+  community.general.ini_file:
+    path: /etc/avahi/avahi-daemon.conf
+    section: server
+    option: allow-interfaces
+    value: "{{ ansible_default_ipv4.interface }}"
+    no_extra_spaces: true
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  when:
+    - nginx_install_avahi | bool
+    - ansible_default_ipv4.interface is defined
+  notify: restart avahi-daemon
+
 - name: Enable avahi-daemon
   ansible.builtin.systemd:
     name: avahi-daemon
