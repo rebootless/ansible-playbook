@@ -15,12 +15,12 @@ filebrowser_gid: 1000
 # silently pull in breaking changes on a redeploy — pin an explicit version
 # for production. Stable example as of August 2026: v2.63.22.
 # NOTE: versions before v2.63.5 have a frontend bug where opening the app
-# at exactly the reverse-proxy base path (e.g. /files/, with nothing after
-# it) throws "can't access property Symbol.iterator, params.catchAll is
-# undefined" in the router and the UI hangs on the loading screen forever —
-# fixed by upstream commit "fix(router): handle undefined catchAll param on
-# root redirect" in v2.63.5. Don't pin below v2.63.5 if serving under a
-# sub-path like --baseurl /files.
+# at exactly the reverse-proxy base path (e.g. /filebrowser/, with nothing
+# after it) throws "can't access property Symbol.iterator, params.catchAll
+# is undefined" in the router and the UI hangs on the loading screen
+# forever — fixed by upstream commit "fix(router): handle undefined
+# catchAll param on root redirect" in v2.63.5. Don't pin below v2.63.5 if
+# serving under a sub-path like --baseurl /filebrowser.
 # Also worth knowing: File Browser (filebrowser/filebrowser) is being wound
 # down — the repo is planned to be archived 2026-09-01, after which there
 # will be no further releases or security fixes. Existing releases/images

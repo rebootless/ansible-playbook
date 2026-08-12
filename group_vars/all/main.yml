@@ -191,7 +191,7 @@ filebrowser_password: "<FILEBROWSER_PASSWORD>"
 
 # Optional public hostname for File Browser, used only for documentation/
 # reference by this playbook. The reverse-proxy path prefix File Browser
-# is actually served under is /files/, set via --baseurl in
+# is actually served under is /filebrowser/, set via --baseurl in
 # roles/filebrowser/templates/compose.yaml.j2 — see the comment there for
 # why that flag has to match the nginx location exactly (this is the
 # "endless loading screen behind a sub-path reverse proxy" issue).
@@ -211,10 +211,10 @@ filebrowser_wipe_existing: false
 # silently pull in breaking changes on a redeploy — pin an explicit version
 # for production. Stable example as of August 2026: v2.63.22.
 # NOTE: versions before v2.63.5 have a frontend bug where opening the app
-# at exactly the reverse-proxy base path (e.g. /files/, nothing after it)
-# throws "params.catchAll is undefined" in the router and hangs on the
+# at exactly the reverse-proxy base path (e.g. /filebrowser/, nothing after
+# it) throws "params.catchAll is undefined" in the router and hangs on the
 # loading screen forever — fixed upstream in v2.63.5. Don't go below that
-# if serving under a sub-path like --baseurl /files.
+# if serving under a sub-path like --baseurl /filebrowser.
 # Also worth knowing: File Browser is being wound down upstream — planned
 # repo archive 2026-09-01, no further releases/security fixes after that.
 # Check https://github.com/filebrowser/filebrowser/releases for newer stable releases.

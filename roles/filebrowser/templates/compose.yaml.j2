@@ -6,14 +6,18 @@ services:
       - -d
       - /database/filebrowser.db
       # File Browser has no way to detect that nginx is reverse-proxying it
-      # under /files/ (roles/nginx/templates/partials/filebrowser-proxy.conf.j2).
+      # under /filebrowser/ (roles/nginx/templates/partials/filebrowser-proxy.conf.j2).
       # Without --baseurl, File Browser generates all its internal links/API
-      # calls as if it owns the site root, so behind a /files/ prefix the UI
-      # loads a blank page and spins forever. --baseurl tells it "you are
-      # actually mounted at /files/", so it must match the nginx location
-      # exactly (including no trailing slash here).
+      # calls as if it owns the site root, so behind a /filebrowser/ prefix
+      # the UI loads a blank page and spins forever. --baseurl tells it "you
+      # are actually mounted at /filebrowser/", so it must match the nginx
+      # location exactly (including no trailing slash here). Also: nginx
+      # must pass this prefix through unstripped (proxy_pass with no URI) —
+      # if nginx strips it, File Browser's own /filebrowser-prefixed routes
+      # never match anything and every request 404s from File Browser itself
+      # rather than from nginx.
       - --baseurl
-      - /files
+      - /filebrowser
     volumes:
       - ./srv:/srv
       - ./database:/database

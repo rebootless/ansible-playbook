@@ -1,8 +1,16 @@
-    location = /files {
-        return 301 /files/;
+    location = /filebrowser {
+        return 301 /filebrowser/;
     }
 
-    location /files/ {
+    location /filebrowser/ {
+        # File Browser is deployed with --baseurl /filebrowser (see
+        # roles/filebrowser/templates/compose.yaml.j2), so it expects to
+        # receive requests with the /filebrowser/ prefix still attached.
+        # proxy_pass here has NO trailing path/URI, so nginx forwards the
+        # original request URI unchanged (prefix included) instead of
+        # stripping it — this must stay in sync with nginx_filebrowser_upstream
+        # in roles/nginx/defaults/main.yml, which is also bare (no trailing "/").
+        client_max_body_size 0;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -10,6 +18,5 @@
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        # Trailing slash strips /files/ prefix before forwarding
         proxy_pass {{ nginx_filebrowser_upstream }};
     }
