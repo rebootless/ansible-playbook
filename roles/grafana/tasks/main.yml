@@ -55,7 +55,15 @@
   ansible.builtin.copy:
     content: "{{ grafana_password }}"
     dest: "{{ grafana_deploy_dir }}/secrets/grafana_admin_password.txt"
-    mode: "0600"
+    # compose.yaml.j2 bind-mounts this file into the container (not a Swarm
+    # secret, so it keeps the host file's ownership/mode as-is). grafana-server
+    # runs as UID/GID 472 inside the container, not root — if this file stays
+    # root:root it can't read it, GF_SECURITY_ADMIN_PASSWORD__FILE silently
+    # fails to resolve, and Grafana falls back to the built-in admin/admin
+    # default (which also seems to drop GF_SECURITY_ADMIN_USER in the process).
+    owner: "472"
+    group: "472"
+    mode: "0400"
   no_log: true
 
 - name: Determine Grafana root URL
@@ -110,36 +118,67 @@
   delay: 10
   ignore_errors: true
 
-- name: Import Node Exporter Full dashboard (19937)
+# GF_SECURITY_ADMIN_USER / GF_SECURITY_ADMIN_PASSWORD__FILE are only honored
+# by Grafana the first time it creates grafana.db. On every later deploy the
+# database already exists, so those env vars are silently ignored and the
+# original admin account (default admin/admin on a fresh install) stays in
+# place forever. This block detects that stale default account and fixes it
+# via the API, without touching ./grafana/data (dashboards, users, etc.).
+- name: Reset Grafana admin credentials if still at the default admin/admin
   when: grafana_health is succeeded
   block:
-    - name: Download dashboard JSON from grafana.com
+    - name: Check whether the default admin/admin login still works
       ansible.builtin.uri:
-        url: "https://grafana.com/api/dashboards/19937/revisions/latest/download"
-        return_content: true
-      register: grafana_dashboard_json
-      failed_when: false
-
-    - name: Import dashboard into Grafana
-      ansible.builtin.uri:
-        url: "http://localhost:3000/api/dashboards/import"
-        method: POST
-        user: "{{ grafana_user }}"
-        password: "{{ grafana_password }}"
+        url: "http://localhost:3000/api/user"
+        method: GET
+        user: admin
+        password: admin
         force_basic_auth: true
-        body_format: json
-        body:
-          dashboard: "{{ grafana_dashboard_json.json }}"
-          overwrite: true
-          inputs:
-            - name: DS_PROMETHEUS
-              type: datasource
-              pluginId: prometheus
-              value: Prometheus
-        status_code: 200
-      when: grafana_dashboard_json.status is defined and grafana_dashboard_json.status == 200
+        status_code: [200, 401]
+      register: grafana_default_login_check
       failed_when: false
       no_log: true
+
+    - name: Apply configured admin username and password
+      when:
+        - grafana_default_login_check.status is defined
+        - grafana_default_login_check.status == 200
+      no_log: true
+      block:
+        - name: Update admin username (login) via Grafana API
+          ansible.builtin.uri:
+            url: "http://localhost:3000/api/users/1"
+            method: PUT
+            user: admin
+            password: admin
+            force_basic_auth: true
+            body_format: json
+            body:
+              login: "{{ grafana_user }}"
+              email: "{{ grafana_user }}@localhost"
+            status_code: 200
+          failed_when: false
+
+        - name: Update admin password via Grafana API
+          ansible.builtin.uri:
+            url: "http://localhost:3000/api/admin/users/1/password"
+            method: PUT
+            user: admin
+            password: admin
+            force_basic_auth: true
+            body_format: json
+            body:
+              password: "{{ grafana_password }}"
+            status_code: 200
+          failed_when: false
+
+- name: Deploy Node Exporter Full dashboard (id 1860) as a file
+  ansible.builtin.copy:
+    src: node-exporter-full-dashboard.json
+    dest: "{{ grafana_deploy_dir }}/grafana/dashboards/node-exporter-full-dashboard.json"
+    mode: "0644"
+  # Picked up automatically by the file provisioner in dashboards.yml.j2
+  # (updateIntervalSeconds: 30) — no container restart required.
 
 - name: Show summary
   ansible.builtin.debug:
