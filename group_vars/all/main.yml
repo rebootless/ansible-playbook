@@ -1,17 +1,41 @@
 ---
+# ==================================================================
+# SSH connection
+# ==================================================================
+# IPv4 address or resolvable hostname/FQDN of the target server
+# Example: "203.0.113.10" or "deb-server.example.com" or "deb-server.local"
 ansible_host: "<SERVER_IP_OR_HOSTNAME>"
 
+# Linux user Ansible uses to connect over SSH
+# NOTE: Must exist on the target host and have sudo access
+# Example: "ansible-user"
 ansible_user: "<ANSIBLE_USER>"
 
-ansible_password: "<ANSIBLE_PASSWORD>"
-
+# Sudo password for <ANSIBLE_USER>
+# Example: "Ans1ble-Str0ng-Pass!"
 ansible_become_password: "<ANSIBLE_BECOME_PASSWORD>"
 
+# SSH password for <ANSIBLE_USER>
+# NOTE: Only needed when using password authentication instead of an SSH key
+# Example: "Ans1ble-Str0ng-Pass!"
+ansible_password: "<ANSIBLE_PASSWORD>"
+
+# TCP port the target's sshd listens on. Integer, 1-65535
+# Example: 22
 ansible_port: 22
 
+# Uncomment and set a path instead of ansible_password to use key-based auth
+# Example: "~/.ssh/id_rsa"
+# ansible_ssh_private_key_file: "~/.ssh/id_rsa"
 
+# Path to the Python 3 interpreter on the target host
+# NOTE: Leave as-is for Debian/Ubuntu; only change if python3 lives somewhere non-standard
+# Example: /usr/bin/python3
 ansible_python_interpreter: /usr/bin/python3
 
+# ==================================================================
+# step toggles
+# ==================================================================
 deploy_firewall: true
 deploy_ssh: true
 deploy_fail2ban: true
@@ -20,54 +44,128 @@ deploy_grafana: true
 deploy_portainer: true
 deploy_filebrowser: true
 
+# ==================================================================
+# SSH
+# ==================================================================
+# Whether to open the configured SSH port in the firewall
+# Example: true/false
 ssh_allow_firewall: true
 
+# ==================================================================
+# firewall
+# ==================================================================
+# Which firewall backend to install/configure
+# Example: firewalld/ufw
 firewall_backend: firewalld
 
+# ==================================================================
+# nginx
+# ==================================================================
+# Hostname used for nginx's server_name
+# NOTE: Any valid DNS label works, including a ".local" name if you're relying on mDNS
+# Example: "deb-server.example.com" or "deb-server.local"
 nginx_domain: "<DOMAIN>"
 
+# Installs and enables avahi-daemon, which is what actually provides mDNS
+# Example: true/false
 nginx_install_avahi: false
 
+# Installs PHP-FPM and wires up the nginx PHP location
+# Example: true/false
 nginx_install_php: false
 
+# Adds an nginx reverse-proxy location for the service
+# NOTE: Only meaningful if that service's deploy_* is also true
+# Example: true/false
 nginx_grafana_proxy: true
 nginx_portainer_proxy: true
 nginx_filebrowser_proxy: true
 
+# Opens http/https/mdns on the active firewall backend.
+# Example: true/false
 nginx_configure_firewall: true
 
+# ==================================================================
+# grafana
+# ==================================================================
+# Grafana admin login username
+# Example: "admin"
 grafana_user: "<GRAFANA_USER>"
 
+# Grafana admin password
+# Example: "Gr4fana-Str0ng-Pass!" (4+ characters)
 grafana_password: "<GRAFANA_PASSWORD>"
 
+# Optional public hostname for Grafana.
+# NOTE: Leave empty ("") to serve on http://localhost:3000/ only
+# Example: "grafana.example.com" or ""
 grafana_domain: "<GRAFANA_DOMAIN>"
 
+# Absolute path on the target host where the Grafana/Prometheus/Node Exporter compose stack and its data live
+# Example: /opt/grafana-stack
 grafana_deploy_dir: /opt/grafana-stack
 
+# DESTRUCTIVE if true — wipes the existing stack and all its data
+# Example: true/false
 grafana_wipe_existing: false
 
+# Grafana: 13.1.1 (no "v" prefix)
+# Prometheus: v3.13.1
+# Exporter: v1.12.1
 grafana_image_version: "13.1.1"
 prometheus_image_version: "v3.13.1"
 node_exporter_image_version: "v1.12.1"
 
+# ==================================================================
+# portainer
+# ==================================================================
+# Portainer admin password
+# NOTE: Portainer does NOT let you choose the admin username — the built-in account is always named "admin"
+# Example: "Port4iner-Str0ng-Pass!" (12+ characters)
 portainer_password: "<PORTAINER_PASSWORD>"
 
+# Optional public hostname for Portainer
+# NOTE: Leave empty ("") if you don't expose it via nginx
+# Example: "portainer.example.com" or ""
 portainer_domain: "<PORTAINER_DOMAIN>"
 
+# Absolute path on the target host where the Portainer compose stack and its data live.
+# Example: /opt/portainer-stack
 portainer_deploy_dir: /opt/portainer-stack
 
+# DESTRUCTIVE if true — wipes the existing stack and all its data
+# Example: true/false
 portainer_wipe_existing: false
 
+# Portainer: 2.39.5 (no "v" prefix)
 portainer_image_version: "2.39.5"
 
+# ==================================================================
+# filebrowser
+# ==================================================================
+# File Browser admin login
+# Example: "admin"
 filebrowser_user: "<FILEBROWSER_USER>"
 
+# File Browser admin password
+# NOTE: Since v2.34.1, File Browser enforces a minimum password length of 12 characters by default
+# Example: "F1leBrowser-Str0ng-Pass!" (12+ characters)
 filebrowser_password: "<FILEBROWSER_PASSWORD>"
 
+# Optional public hostname for File Browser
+# NOTE: Leave empty ("") if you don't expose it via nginx
+# Example: "files.example.com" or ""
 filebrowser_domain: "<FILEBROWSER_DOMAIN>"
 
+# Absolute path on the target host where the File Browser compose stack and its data (srv/, database/) live.
+# Example: /opt/filebrowser-stack
 filebrowser_deploy_dir: /opt/filebrowser-stack
 
+# DESTRUCTIVE if true — wipes the existing stack and all its data
+# Example: true/false
 filebrowser_wipe_existing: false
 
-filebrowser_image_version: "v2.63.22"
+# Upstream repository was archived on 2026-09-01
+# NOTE: Forever loading screen — fixed upstream in v2.63.5. Don't go below that
+# Latest release: v2.63.23
+filebrowser_image_version: "v2.63.23"

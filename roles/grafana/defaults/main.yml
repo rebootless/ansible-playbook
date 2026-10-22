@@ -5,6 +5,10 @@ grafana_password: admin
 grafana_domain: ""
 grafana_wipe_existing: false
 
+# Stable examples as of July 2026:
+# Grafana: 13.1.1 (no "v" prefix)
+# Prometheus: v3.13.1
+# Exporter: v1.12.1
 grafana_image_version: "13.1.1"
 prometheus_image_version: "v3.13.1"
 node_exporter_image_version: "v1.12.1"

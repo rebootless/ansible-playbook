@@ -4,4 +4,5 @@ portainer_password: admin
 portainer_domain: ""
 portainer_wipe_existing: false
 
+# Portainer: 2.39.5 (no "v" prefix)
 portainer_image_version: "2.39.5"

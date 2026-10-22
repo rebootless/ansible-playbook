@@ -23,6 +23,7 @@
   failed_when: false
   when: firewalld_present.rc == 0
 
+# Only touches firewalld if it is already installed and running
 - name: Allow SSH through firewalld
   ansible.posix.firewalld:
     service: ssh
@@ -50,6 +51,7 @@
   failed_when: false
   when: ufw_present.rc == 0
 
+# Only touches firewalld if it is already installed and running
 - name: Allow SSH through ufw
   community.general.ufw:
     rule: allow

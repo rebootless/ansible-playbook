@@ -1,5 +1,6 @@
 ---
-
+# Installs Docker Engine from Docker's official apt repository
+# (https://docs.docker.com/engine/install/)
 - name: Install prerequisites for Docker's apt repository
   ansible.builtin.apt:
     name:

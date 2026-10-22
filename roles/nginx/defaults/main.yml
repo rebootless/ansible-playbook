@@ -8,5 +8,6 @@ nginx_filebrowser_proxy: false
 nginx_configure_firewall: true
 
 nginx_grafana_upstream: "http://127.0.0.1:3000"
+# "/" is required
 nginx_portainer_upstream: "http://127.0.0.1:9000/"
 nginx_filebrowser_upstream: "http://127.0.0.1:8080"

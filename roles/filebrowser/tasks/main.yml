@@ -55,6 +55,7 @@
     mode: "0644"
   notify: restart filebrowser stack
 
+# Bootstrap only runs once — if the database already exists, existing credentials are retained
 - name: Check for an existing database
   ansible.builtin.stat:
     path: "{{ filebrowser_deploy_dir }}/database/filebrowser.db"

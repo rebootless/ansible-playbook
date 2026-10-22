@@ -4,6 +4,8 @@
     name: nginx
     state: reloaded
 
+# A plain "systemctl restart avahi-daemon" is unreliable on Debian/Ubuntu:
+# avahi-daemon is both unit-activated (avahi-daemon.service) and socket-activated (avahi-daemon.socket)
 - name: restart avahi-daemon
   listen: restart avahi-daemon
   ansible.builtin.systemd:

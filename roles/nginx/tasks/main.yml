@@ -17,10 +17,12 @@
   ansible.builtin.apt:
     name:
       - avahi-daemon
+      # avahi-utils provides avahi-resolve / avahi-browse, useful for verifying mDNS resolution directly
       - avahi-utils
     state: present
   when: nginx_install_avahi | bool
 
+# Set Avahi's host-name to nginx_domain so it resolves on the LAN regardless of the system hostname; use no_extra_spaces to avoid invalid config keys
 - name: Set avahi-daemon host-name to match nginx_domain
   community.general.ini_file:
     path: /etc/avahi/avahi-daemon.conf
@@ -35,6 +37,7 @@
   when: nginx_install_avahi | bool
   notify: restart avahi-daemon
 
+# Restrict Avahi to Ansible's LAN interface to prevent publishing unreachable Docker bridge IPs for nginx_domain
 - name: Restrict avahi-daemon to the real LAN interface
   community.general.ini_file:
     path: /etc/avahi/avahi-daemon.conf
@@ -61,7 +64,7 @@
 - name: Install PHP and PHP-FPM
   ansible.builtin.apt:
     name:
-      - php-cli
+      - php-cli  # Replaced 'php' with 'php-cli' to avoid installing Apache2
       - php-fpm
       - php-common
       - php-mbstring
@@ -81,6 +84,7 @@
     php_version: "{{ php_version_result.stdout }}"
   when: nginx_install_php | bool
 
+# Docker is only required if we are wiring up a reverse proxy to a Docker-based backend (Grafana / Portainer / File Browser).
 - name: Ensure Docker is installed for reverse-proxied backends
   ansible.builtin.include_role:
     name: docker
@@ -171,6 +175,7 @@
     group: www-data
     mode: "0755"
 
+# Ansible only rewrites the file when its content actually differs, and keeps a timestamped .XXXX@ backup
 - name: Deploy default index.html
   ansible.builtin.template:
     src: index.html.j2

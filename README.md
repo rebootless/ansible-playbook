@@ -1,61 +1,48 @@
 # Ansible-Playbook
 
-**A modular Ansible playbook for Debian- and Ubuntu-based systems.**
-Hardened server deployment, Docker services, reverse proxy configuration,
-monitoring stack, and infrastructure automation.
+**Modular Ansible playbook for Debian and Ubuntu.**
+
+Automates server hardening, Docker services, nginx reverse proxies, monitoring, and infrastructure configuration.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Ansible](https://img.shields.io/badge/Ansible-2.15%2B-EE0000?logo=ansible&logoColor=white)](https://www.ansible.com/)
-[![Debian](https://img.shields.io/badge/Debian-12%20%7C%2013-A81D33?logo=debian&logoColor=white)](https://www.debian.org)
-[![Ubuntu](https://img.shields.io/badge/Ubuntu-22.04%20%7C%2024.04%20%7C%2026.04-E95420?logo=ubuntu&logoColor=white)](https://ubuntu.com)
+[![Debian](https://img.shields.io/badge/Debian-12%20%7C%2013-A81D33?logo=debian&logoColor=white)](https://www.debian.org/)
+[![Ubuntu](https://img.shields.io/badge/Ubuntu-22.04%20%7C%2024.04%20%7C%2026.04-E95420?logo=ubuntu&logoColor=white)](https://ubuntu.com/)
 
-All components are optional and can be enabled or disabled via `deploy_*` variables.
+All components can be enabled or disabled via `deploy_*` variables.
 
-| Component       | Description                                   |
-|-----------------|-----------------------------------------------|
-| **firewall**    | firewalld or ufw (pick one via `firewall_backend`) |
-| **SSH**         | OpenSSH server + optional firewall rule       |
-| **fail2ban**    | SSH jail protection                           |
-| **nginx**       | Reverse proxy (optional PHP, avahi, proxies)  |
-| **Grafana**     | Grafana + Prometheus + Node Exporter (Docker) |
-| **Portainer**   | Docker management UI (Docker)                 |
-| **Filebrowser** | Web file manager (Docker)                     |
+| Component | Description |
+|---|---|
+| Firewall | firewalld or ufw |
+| SSH | OpenSSH and optional firewall rules |
+| fail2ban | SSH protection |
+| nginx | Reverse proxy, optional PHP-FPM and Avahi |
+| Grafana | Grafana, Prometheus, Node Exporter (Docker) |
+| Portainer | Docker management UI |
+| Filebrowser | Web file manager |
 
-Docker-based services bind to `127.0.0.1` only and are exposed through nginx reverse proxies.
+Docker services bind to `127.0.0.1` and are exposed through nginx reverse proxies.
 
 ## Requirements
 
-### Control Node
+**Control node:** Ansible ≥ 2.15, Python 3, Git, nano.
 
-- `ansible` ≥ 2.15
-- `python3`
-- `git`
-- `nano`
-- Collections:
-  - `community.docker` ≥ 3.10
-  - `ansible.posix` ≥ 1.5
-  - `community.general` ≥ 8.0
+Required collections: `community.docker` ≥ 3.10, `ansible.posix` ≥ 1.5, `community.general` ≥ 8.0.
 
-### Managed Node(s)
-
-- Debian 12+ or Ubuntu 22.04+
-- SSH access with sudo privileges
-- Internet access
+**Managed nodes:** Debian 12+ or Ubuntu 22.04+, SSH access with sudo privileges, and internet access.
 
 ## Quick Start
 
 ```bash
-git clone https://github.com/rebootless/ansible-playbook.git && cd ansible-playbook && chmod +x quickstart.sh && ./quickstart.sh
+git clone https://github.com/rebootless/ansible-playbook.git
+cd ansible-playbook
+chmod +x quickstart.sh
+./quickstart.sh
 ```
 
-The quickstart script:
+The script installs missing prerequisites, installs the latest Ansible via pipx, installs required collections, and opens `group_vars/all/main.yml` for configuration.
 
-1. Installs `git`, `python3`, `pipx`, and `nano` if they are missing
-2. Reinstalls the latest Ansible via `pipx` (including all CLI tools)
-3. Installs the required Ansible collections
-4. Opens `group_vars/all/main.yml` in `nano` for configuration
-
-After editing the configuration, deploy the full stack:
+After configuring, deploy:
 
 ```bash
 ansible-playbook deploy-server.yml
@@ -67,15 +54,10 @@ ansible-playbook deploy-server.yml
 git clone https://github.com/rebootless/ansible-playbook.git
 cd ansible-playbook
 ansible-galaxy collection install -r requirements.yml
-```
-
-Edit connection and service variables:
-
-```bash
 nano group_vars/all/main.yml
 ```
 
-Required placeholders (replace all `<...>` values):
+Replace all `<...>` placeholders, including:
 
 ```yaml
 ansible_host: "<SERVER_IP_OR_HOSTNAME>"
@@ -97,17 +79,17 @@ filebrowser_password: "<FILEBROWSER_PASSWORD>"
 filebrowser_domain: "<FILEBROWSER_DOMAIN>"
 ```
 
-Enable or disable components using the `deploy_*` variables (all default to `true`).
+All `deploy_*` variables default to `true`.
 
 ## Deployment
 
-Full stack:
+Deploy everything:
 
 ```bash
 ansible-playbook deploy-server.yml
 ```
 
-Run selected components (for example):
+Deploy selected components:
 
 ```bash
 ansible-playbook deploy-server.yml --tags ssh,firewall,fail2ban,docker,nginx,portainer
@@ -115,99 +97,64 @@ ansible-playbook deploy-server.yml --tags ssh,firewall,fail2ban,docker,nginx,fil
 ansible-playbook deploy-server.yml --tags ssh,firewall,fail2ban,docker,nginx,grafana
 ```
 
-Dry-run / check mode:
+Check mode:
 
 ```bash
 ansible-playbook deploy-server.yml --check
 ```
 
-## Inventory
+## Inventory and Configuration
 
-Default inventory (`inventory/hosts.yml`) contains a single host `server-01`.  
-Connection details are taken from `group_vars/all/main.yml`.
+The default inventory, `inventory/hosts.yml`, contains `server-01`. Connection settings are defined in `group_vars/all/main.yml`. For multiple hosts, use `host_vars/` or additional `group_vars/` files.
 
-To manage multiple hosts, extend the inventory and move per-host variables to `host_vars/` or additional group_vars files.
-
-## ansible.cfg Highlights
-
-- Inventory: `inventory/hosts.yml`
-- Roles path: `roles/`
-- Privilege escalation: `become = True` (sudo)
-- `host_key_checking = False` (convenient for first runs; consider enabling in production)
-- YAML stdout callback
+`ansible.cfg` configures the inventory, `roles/` path, sudo privilege escalation, and YAML output. Host key checking is disabled for convenience; enable it in production.
 
 ## Available Roles
 
-### firewall (firewalld / ufw)
-Controlled by `firewall_backend` (`firewalld` or `ufw`, default `firewalld`) and `deploy_firewall`.
-`deploy-server.yml` runs whichever role matches `firewall_backend`.
+### Firewall
 
-Before installing anything, `deploy-server.yml`'s pre_tasks check installed packages: if the
-*other* backend is already present on the host, the run fails with an explanation instead of
-installing a second, conflicting firewall. If the *selected* backend is already installed,
-installation is simply skipped (idempotent) and configuration proceeds.
+Select `firewalld` or `ufw` using `firewall_backend` (default: `firewalld`) and `deploy_firewall`.
 
-- **firewalld** — installs and starts firewalld, sets default zone to `public`.
-- **ufw** — installs ufw, sets default policy (deny incoming / allow outgoing), enables it.
+Pre-tasks prevent installing a second, conflicting firewall. If the other backend is installed, deployment fails with an explanation. If the selected backend is already installed, installation is skipped.
+
+- **firewalld:** starts the service and sets the default zone to `public`.
+- **ufw:** sets default policies to deny incoming and allow outgoing traffic, then enables the firewall.
 
 ### SSH
-Installs OpenSSH server, enables the service. If `ssh_allow_firewall` is true, detects whichever
-firewall (firewalld and/or ufw) is already installed and active on the host and opens the SSH
-service/port on it — independent of `firewall_backend`, so it also works when `deploy_firewall`
-is disabled but a firewall already exists.
+
+Installs and enables OpenSSH. If `ssh_allow_firewall` is enabled, opens the configured SSH service/port in any detected, active firewalld or ufw instance, independently of `firewall_backend` and `deploy_firewall`.
 
 ### fail2ban
-Installs fail2ban and deploys a minimal `jail.local` that protects SSH.
+
+Installs fail2ban and configures a minimal SSH jail.
 
 ### nginx
-- Installs nginx
-- Optional avahi-daemon (`.local` hostname) and PHP-FPM
-- Creates site root and config under the configured domain
-- Optional reverse-proxy locations for Grafana / Portainer / Filebrowser
-- Optional firewall rules for http / https / mdns, on whichever of firewalld/ufw is
-  detected active on the host (same detection approach as the SSH role; nginx itself
-  never installs a firewall)
-- Pulls in the `docker` role when any proxy is enabled
 
-### grafana
-Docker Compose stack:
-- Grafana (admin credentials via secret file)
-- Prometheus
-- Node Exporter
-- Auto-imports the “Node Exporter Full” dashboard (ID 19937)
-- Supports `grafana_wipe_existing` to recreate from scratch
-- Image versions are pinned via `grafana_image_version`, `prometheus_image_version`,
-  and `node_exporter_image_version` (defaults are the latest stable releases as of
-  July 2026 — check upstream for newer ones before deploying; avoid `latest` in production)
+Installs nginx, creates the site root and virtual host, and optionally configures Avahi (`.local` hostnames), PHP-FPM, reverse proxies, and HTTP/HTTPS/mDNS firewall rules. It never installs a firewall. The Docker role is included when a proxy is enabled.
 
-### portainer
-Docker Compose Portainer CE with admin password from a secret file.  
-Supports `portainer_wipe_existing`.  
-Image version is pinned via `portainer_image_version` (default is the latest LTS release
-as of July 2026 — avoid `latest` in production).
+### Docker
 
-### filebrowser
-Docker Compose File Browser.  
-Bootstraps the admin user only on first run (when the database does not yet exist).  
-Supports `filebrowser_wipe_existing`.  
-Image version is pinned via `filebrowser_image_version` (default is the latest stable
-release as of July 2026 — avoid `latest` in production).
+Installs Docker Engine and Compose plugins from Docker's official APT repository on Debian and Ubuntu, then starts Docker. Used by nginx proxies and all Docker-based services.
 
-### docker (shared role)
-Installs Docker Engine (`docker-ce`, `docker-ce-cli`, `containerd.io`, `docker-buildx-plugin`,
-`docker-compose-plugin`) from Docker's official apt repository, as recommended by Docker's
-own install docs, rather than the distro-packaged `docker.io`/`docker-compose`. Works the same
-way on Debian and Ubuntu (repository URL is picked from `ansible_distribution`). Starts the
-Docker service.  
-Used by nginx (when proxies are enabled) and by the three Docker-based roles.
+### Grafana
 
-## Safety Notes
+Docker Compose stack with Grafana, Prometheus, and Node Exporter. Imports the Node Exporter Full dashboard (ID `19937`). Supports `grafana_wipe_existing` and configurable image versions.
 
-- Secrets (`*_password`) are written to files with mode `0600` and use `no_log` where appropriate. Prefer Ansible Vault for production.
-- Docker services listen on localhost only; expose them exclusively through nginx (or another reverse proxy).
-- No TLS/Let’s Encrypt is configured out of the box — add certificates before exposing services to the internet.
-- `host_key_checking = False` is set for convenience; re-enable it after the first successful connection.
+### Portainer
+
+Docker Compose deployment of Portainer CE. Admin credentials come from a secret file. Supports `portainer_wipe_existing` and configurable image versions.
+
+### Filebrowser
+
+Docker Compose deployment of File Browser. Creates the admin user on first run only. Supports `filebrowser_wipe_existing` and configurable image versions.
+
+## Security
+
+- Passwords are stored in files with mode `0600`; sensitive tasks use `no_log` where appropriate. Use Ansible Vault for production secrets.
+- Docker services bind to localhost and should be exposed only through a reverse proxy.
+- TLS certificates and Let's Encrypt are not configured by default.
+- Re-enable SSH host key checking for production deployments.
 
 ## License
 
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+MIT — see [LICENSE](LICENSE).
